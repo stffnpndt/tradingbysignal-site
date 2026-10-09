@@ -48,13 +48,14 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
           <li class="item" id={s.id} data-replay>
             <Glyph kind={s.glyph} label={`Diagram of how ${s.name} trades`} />
             <div class="body">
-              <h3>{s.name}</h3>
+              <h3>{s.details ? <a href={`/strategies/${s.id}`}>{s.name}</a> : s.name}</h3>
               <p class="meta">
                 <span>{s.timeframe}</span>
                 <span>{s.market}</span>
                 <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
               </p>
               <p class="summary">{s.summary}</p>
+            {s.details && <a class="more" href={`/strategies/${s.id}`}>How it works in detail</a>}
             </div>
           </li>
         ))}
@@ -213,6 +214,27 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   .summary {
     margin: 0;
     color: var(--ink-soft);
+  }
+  h3 a {
+    text-decoration: none;
+  }
+  h3 a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-underline-offset: 0.18em;
+  }
+  .more {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 0.2em;
+  }
+  .more:hover {
+    text-decoration-color: var(--ink);
   }
   .legend {
     display: flex;

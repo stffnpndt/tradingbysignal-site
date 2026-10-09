@@ -1,0 +1,396 @@
+---
+import Base from '../../layouts/Base.astro';
+import Glyph from '../../components/Glyph.astro';
+import IchimokuDiagram from '../../components/diagrams/IchimokuDiagram.astro';
+import { strategies, type Strategy, type StrategyDetails } from '../../data/strategies';
+
+export function getStaticPaths() {
+  return strategies
+    .filter((s) => s.details)
+    .map((s) => ({ params: { id: s.id }, props: { strategy: s } }));
+}
+
+interface Props {
+  strategy: Strategy;
+}
+
+const { strategy: s } = Astro.props;
+const d = s.details as StrategyDetails;
+
+const diagrams: Record<string, any> = {
+  'tf-ichimoku': IchimokuDiagram,
+};
+const Diagram = diagrams[s.id];
+
+const withPages = strategies.filter((x) => x.details);
+const others = strategies.filter((x) => x.id !== s.id);
+---
+
+<Base title={`${s.name} | Trading B(u)y Signal`} description={d.tagline}>
+  <section class="head dark grain">
+    <header class="site-header wrap">
+      <a class="wordmark" href="/">Trading B(u)y Signal</a>
+      <a class="back" href="/#strategies-title">All strategies</a>
+    </header>
+
+    <div class="wrap intro">
+      <h1>{s.name}</h1>
+      <p class="tagline">{d.tagline}</p>
+      <dl class="facts">
+        {d.facts.map((f) => (
+          <div>
+            <dt>{f.label}</dt>
+            <dd>{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+
+    {Diagram && (
+      <div class="wrap visual">
+        <Diagram />
+      </div>
+    )}
+  </section>
+
+  <section class="block grain">
+    <div class="wrap narrow">
+      <h2>The idea</h2>
+      {d.idea.map((p) => <p>{p}</p>)}
+    </div>
+  </section>
+
+  <section class="block checks-block dark grain" aria-labelledby="checks-title">
+    <div class="wrap">
+      <h2 id="checks-title">When it buys</h2>
+      <p class="lead">{d.checksIntro}</p>
+      <ul class="checks" data-checks>
+        {d.checks.map((c, i) => (
+          <li style={`--i:${i}`}>
+            <span class="lamp" aria-hidden="true"></span>
+            <h3>{c.title}</h3>
+            <p>{c.text}</p>
+          </li>
+        ))}
+      </ul>
+      <p class="verdict" style={`--i:${d.checks.length}`}>
+        <span class="lamp" aria-hidden="true"></span>All {d.checks.length === 6 ? 'six' : d.checks.length} agree: the trade opens.
+      </p>
+      {d.checksNote && <p class="note">{d.checksNote}</p>}
+    </div>
+  </section>
+
+  <section class="block grain">
+    <div class="wrap narrow">
+      <h2>When it sells</h2>
+      <div class="exits">
+        {d.exits.map((e) => (
+          <div>
+            <h3>{e.title}</h3>
+            <p>{e.text}</p>
+          </div>
+        ))}
+      </div>
+      {d.exitsNote && <p class="note">{d.exitsNote}</p>}
+
+      <h2 class="spaced">Risk</h2>
+      <ul class="plain">
+        {d.risk.map((r) => <li>{r}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="block grain conditions" aria-labelledby="cond-title">
+    <div class="wrap">
+      <h2 id="cond-title">Where it does well, and where it struggles</h2>
+      <div class="cols">
+        <div>
+          <h3>Does well in</h3>
+          <ul class="plain">{d.goodIn.map((g) => <li>{g}</li>)}</ul>
+        </div>
+        <div>
+          <h3>Struggles in</h3>
+          <ul class="plain">{d.badIn.map((b) => <li>{b}</li>)}</ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block more dark grain" aria-labelledby="more-title">
+    <div class="wrap">
+      <h2 id="more-title">The other strategies</h2>
+      <ul class="others">
+        {others.map((o) => {
+          const hasPage = withPages.some((w) => w.id === o.id);
+          const href = hasPage ? `/strategies/${o.id}` : `/#${o.id}`;
+          return (
+            <li data-replay>
+              <a href={href}>
+                <Glyph kind={o.glyph} label={`Diagram of how ${o.name} trades`} />
+                <span>{o.name}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* Head ------------------------------------------------------------------ */
+  .head {
+    padding-bottom: clamp(3rem, 7vw, 5rem);
+  }
+  .site-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.75rem clamp(2.5rem, 7vw, 4.5rem);
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .back {
+    font-size: 0.9375rem;
+    color: var(--on-dark-muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--gold-bright);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: #f2f1ee;
+    max-width: 14ch;
+  }
+  .tagline {
+    margin: 1.5rem 0 0;
+    max-width: 36rem;
+    font-size: clamp(1.0625rem, 1.8vw, 1.25rem);
+    color: var(--on-dark-muted);
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 1.25rem 2rem;
+    margin: 2.75rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .facts dt {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .facts dd {
+    margin: 0.2rem 0 0;
+    color: var(--on-dark);
+    font-weight: 500;
+  }
+  .visual {
+    margin-top: clamp(3rem, 7vw, 4.5rem);
+  }
+
+  /* Blocks ---------------------------------------------------------------- */
+  .block {
+    padding-block: clamp(4rem, 9vw, 6.5rem);
+  }
+  .narrow > * {
+    max-width: 44rem;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    letter-spacing: -0.015em;
+    margin-bottom: 1.25rem;
+  }
+  .dark h2 {
+    color: #f2f1ee;
+  }
+  h2.spaced {
+    margin-top: 3.5rem;
+  }
+  .block p {
+    margin: 0 0 1rem;
+    color: var(--ink-soft);
+  }
+  .dark p {
+    color: var(--on-dark-muted);
+  }
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  .note {
+    max-width: 44rem;
+    font-size: 0.9375rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--gold);
+    margin-top: 1.5rem !important;
+  }
+  .plain {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--ink-soft);
+  }
+  .plain li {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Checks: lamps light up in turn ---------------------------------------- */
+  .lead {
+    max-width: 40rem;
+  }
+  .checks {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .checks li {
+    position: relative;
+    padding: 1.5rem 1.5rem 1.5rem 3.25rem;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .checks h3 {
+    color: #f2f1ee;
+  }
+  .checks p {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+  .lamp {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.85rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--on-dark-muted);
+    transition:
+      background-color 300ms ease calc(var(--i) * 220ms),
+      border-color 300ms ease calc(var(--i) * 220ms),
+      box-shadow 300ms ease calc(var(--i) * 220ms);
+  }
+  [data-checks].lit .lamp,
+  .lit ~ .verdict .lamp {
+    background: var(--gold-bright);
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px 2px rgba(230, 201, 136, 0.55);
+  }
+  .verdict {
+    position: relative;
+    margin: 1.75rem 0 0 !important;
+    padding-left: 1.75rem;
+    font-family: var(--serif);
+    font-size: clamp(1.25rem, 2.4vw, 1.625rem);
+    color: var(--on-dark-muted) !important;
+    transition: color 400ms ease calc(var(--i) * 220ms);
+  }
+  .verdict .lamp {
+    left: 0;
+    top: 0.55em;
+  }
+  .lit ~ .verdict {
+    color: var(--gold-bright) !important;
+  }
+
+  /* Exits ----------------------------------------------------------------- */
+  .exits {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .exits p {
+    margin: 0;
+  }
+
+  /* Conditions ------------------------------------------------------------ */
+  .conditions {
+    padding-top: 0;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    margin-top: 2rem;
+  }
+  .cols > div {
+    padding-top: 1rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  /* Others ---------------------------------------------------------------- */
+  .others {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .others a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid var(--rule);
+    text-decoration: none;
+    color: var(--on-dark);
+    transition: border-color 200ms;
+    --ink: var(--on-dark);
+    --ink-soft: var(--on-dark-muted);
+    --fog: var(--stone);
+    --fog-2: #55575c;
+  }
+  .others a:hover {
+    border-color: var(--gold);
+  }
+
+  @media (max-width: 60rem) {
+    .checks {
+      grid-template-columns: 1fr 1fr;
+    }
+    .others {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 40rem) {
+    .checks,
+    .cols,
+    .others {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  const list = document.querySelector<HTMLElement>('[data-checks]');
+  if (list) {
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          list.classList.add('lit');
+          io.disconnect();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(list);
+  }
+</script>
