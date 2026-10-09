@@ -48,8 +48,79 @@ const all: Strategy[] = [
     market: 'Crypto spot, broad universe',
     liveSince: '2026-02-24',
     summary:
-      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually within a few days. Up to five positions at a time.',
+      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually at the close of the same day. Up to five positions at a time.',
     glyph: 'atr',
+    details: {
+      tagline:
+        'Waits below the market for sell-offs that overshoot, buys the panic, and is usually out again by the close of the same day.',
+      facts: [
+        { label: 'Markets', value: 'A broad set of liquid coins, spot' },
+        { label: 'Chart', value: 'Daily candles' },
+        { label: 'Direction', value: 'Long only' },
+        { label: 'Leverage', value: 'None' },
+        { label: 'Positions', value: 'Up to five, equal size' },
+        { label: 'Typical holding', value: 'Less than a day' },
+        { label: 'Live since', value: '24 February 2026' },
+      ],
+      idea: [
+        'Crypto overreacts. On a day of heavy selling, liquidations and triggered stops push prices further than the news behind the move would justify, and part of that overshoot is often undone within hours. The strategy tries to be the buyer at the moment the sellers run out.',
+        'It does not chase. Instead of buying at the market, it places an order well below the day’s low, and that order only fills if the selling carries on into an extreme. The distance is measured in the coin’s own volatility, so a quiet coin and a wild one are treated the same way. Each trade is small and short; the edge comes from repeating the same pattern across many coins.',
+      ],
+      entry: {
+        title: 'When it buys',
+        intro: 'An order is placed when two conditions meet at the daily close, and a trade only opens if the market then comes to that order:',
+        kind: 'checks',
+        verdict: 'Price reaches the order: the trade opens.',
+        items: [
+          {
+            title: 'A weak day',
+            text: 'The coin closes at or below the previous day’s low. Sellers are in control.',
+          },
+          {
+            title: 'A restless market',
+            text: 'Recent daily swings are larger than the coin’s longer-term average. Calm drifts lower are ignored.',
+          },
+          {
+            title: 'An order below the low',
+            text: 'A limit order is placed below the day’s low, at a distance scaled to recent volatility. It is valid for one day; if price does not get there, it is cancelled.',
+          },
+        ],
+        note: 'There is deliberately no trend filter. The strategy buys sharp dips in rising and falling markets alike; in testing, adding a trend filter made the results worse.',
+      },
+      exit: {
+        title: 'When it sells',
+        items: [
+          {
+            title: 'First close in profit',
+            text: 'If the day closes above the entry price, the position is sold at the close. Most trades end this way, on the same day they were bought.',
+          },
+          {
+            title: 'No rebound',
+            text: 'If the close stays weak compared with the coin’s short-term average, the position is sold as well. The bounce did not come, and the strategy does not wait for it.',
+          },
+          {
+            title: 'Emergency stop',
+            text: 'A wide stop is placed together with the order, so it is active from the moment of the fill. It is only meant for crashes that do not bounce at all.',
+          },
+        ],
+        note: 'A position is only held overnight when the close lands between the two exit rules, which is rare.',
+      },
+      risk: [
+        'No leverage. Coins are bought on the spot market, so a trade can never lose more than the capital in it.',
+        'Capital is split into five equal slots, so a single coin is never more than a fifth of the strategy.',
+        'Short holding times keep exposure low: most of the time the strategy holds nothing and waits.',
+        'It buys into falling prices on purpose. When a sell-off turns into a crash, several positions can lose at once, and the emergency stop sits far below the entry.',
+      ],
+      goodIn: [
+        'Volatile markets with sharp but short sell-offs, where panics are bought back quickly.',
+        'Busy phases with many coins swinging at once, which produce more setups.',
+      ],
+      badIn: [
+        'Crashes that keep going for days, where there is no rebound to sell into.',
+        'Calm markets: few setups, and orders below the low are rarely reached.',
+        'Market-wide sell-offs, when all five slots fill on the same day and the positions move together.',
+      ],
+    },
   },
   {
     id: 'tf-ichimoku',
