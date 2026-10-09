@@ -1,0 +1,322 @@
+---
+// Animated path of a signal through the system: source, checks, exchange,
+// records. Cycles through a few example events, including signals that are
+// refused at the checks. Examples only; no real trades.
+
+const events = [
+  {
+    source: 'TradingView alert',
+    what: 'ATR Mean Reversion: buy',
+    check: 'All checks pass',
+    ok: true,
+    order: 'Order filled',
+  },
+  {
+    source: 'TradingView alert',
+    what: 'RSI Mean Reversion: buy',
+    check: 'Refused: position limit reached',
+    ok: false,
+    order: 'No order',
+  },
+  {
+    source: 'Weekly schedule',
+    what: 'Cross-Sectional Momentum: rebalance',
+    check: 'Price data complete, old positions closed',
+    ok: true,
+    order: 'New positions open',
+  },
+  {
+    source: 'TradingView alert',
+    what: 'Ichimoku: sell, sent twice',
+    check: 'Dropped: already handled',
+    ok: false,
+    order: 'No order',
+  },
+  {
+    source: 'TradingView alert',
+    what: 'RSI Red Legs: sell the ladder',
+    check: 'All checks pass',
+    ok: true,
+    order: 'Order filled',
+  },
+];
+const e0 = events[0];
+---
+
+<figure class="flow-fig" data-events={JSON.stringify(events)} aria-label="Example: how signals move through the system">
+  <ol class="stations">
+    <li class="st on" data-st="0">
+      <span class="lamp" aria-hidden="true"></span>
+      <span class="name">Signal</span>
+      <span class="val" data-v="source">{e0.source}</span>
+      <span class="sub" data-v="what">{e0.what}</span>
+    </li>
+    <li class="link on" data-ln="0" aria-hidden="true"><span></span></li>
+    <li class="st on" data-st="1">
+      <span class="lamp" aria-hidden="true"></span>
+      <span class="name">Checks</span>
+      <span class="val" data-v="check">{e0.check}</span>
+      <span class="sub">The bridge or the weekly executor</span>
+    </li>
+    <li class="link on" data-ln="1" aria-hidden="true"><span></span></li>
+    <li class="st on" data-st="2">
+      <span class="lamp" aria-hidden="true"></span>
+      <span class="name">OKX Europe</span>
+      <span class="val" data-v="order">{e0.order}</span>
+      <span class="sub">Spot or futures</span>
+    </li>
+    <li class="link on" data-ln="2" aria-hidden="true"><span></span></li>
+    <li class="st on" data-st="3">
+      <span class="lamp" aria-hidden="true"></span>
+      <span class="name">Records</span>
+      <span class="val">Logged</span>
+      <span class="sub">Signal, decision, order, fill</span>
+    </li>
+  </ol>
+  <figcaption>Examples of how signals move through the system. Refused signals never reach the exchange, but they are logged as well.</figcaption>
+</figure>
+
+<style>
+  .flow-fig {
+    margin: 0;
+  }
+  .stations {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 3rem 1fr 3rem 1fr 3rem 1fr;
+    align-items: stretch;
+  }
+  .st {
+    position: relative;
+    padding: 1.25rem 1.25rem 1.25rem 2.75rem;
+    border: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-height: 8.5rem;
+    transition: border-color 300ms;
+  }
+  .lamp {
+    position: absolute;
+    left: 1.2rem;
+    top: 1.55rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--on-dark-muted);
+    transition:
+      background-color 300ms,
+      border-color 300ms,
+      box-shadow 300ms;
+  }
+  .name {
+    font-weight: 600;
+    color: #f2f1ee;
+  }
+  .val {
+    color: var(--on-dark-muted);
+    font-size: 0.9375rem;
+    transition: color 300ms;
+  }
+  .sub {
+    margin-top: auto;
+    font-size: 0.75rem;
+    color: var(--on-dark-muted);
+    opacity: 0.8;
+  }
+  .st.on {
+    border-color: rgba(195, 160, 90, 0.55);
+  }
+  .st.on .lamp {
+    background: var(--gold-bright);
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px 2px rgba(230, 201, 136, 0.55);
+  }
+  .st.on .val {
+    color: var(--on-dark);
+  }
+  .st.fail {
+    border-color: var(--on-dark-muted);
+  }
+  .st.fail .lamp {
+    background: transparent;
+    border-color: var(--on-dark);
+    box-shadow: none;
+  }
+  .st.off {
+    opacity: 0.4;
+  }
+
+  .link {
+    position: relative;
+    align-self: center;
+    height: 1px;
+    background: var(--rule);
+  }
+  .link span {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold-bright);
+    box-shadow: 0 0 8px 2px rgba(230, 201, 136, 0.6);
+    opacity: 0;
+  }
+  .link.go span {
+    animation: travel 600ms ease-in-out forwards;
+  }
+  .link.on {
+    background: rgba(195, 160, 90, 0.55);
+  }
+  @keyframes travel {
+    0% {
+      left: 0;
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      left: calc(100% - 7px);
+      opacity: 0;
+    }
+  }
+
+  figcaption {
+    margin-top: 1.25rem;
+    font-size: 0.875rem;
+    color: var(--on-dark-muted);
+  }
+
+  @media (max-width: 52rem) {
+    .stations {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+    .st {
+      min-height: 0;
+    }
+    .link {
+      height: 1.75rem;
+      width: 1px;
+      margin-left: 1.55rem;
+      align-self: stretch;
+    }
+    .link span {
+      top: 0;
+      left: -3px;
+    }
+    .link.go span {
+      animation-name: travel-v;
+    }
+  }
+  @keyframes travel-v {
+    0% {
+      top: 0;
+      left: -3px;
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      top: calc(100% - 7px);
+      left: -3px;
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  type Ev = { source: string; what: string; check: string; ok: boolean; order: string };
+  const fig = document.querySelector<HTMLElement>('figure.flow-fig');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (fig && !reduce) {
+    const events: Ev[] = JSON.parse(fig.dataset.events || '[]');
+    const st = [...fig.querySelectorAll<HTMLElement>('.st')];
+    const ln = [...fig.querySelectorAll<HTMLElement>('.link')];
+    const v = (k: string) => fig.querySelector<HTMLElement>(`[data-v="${k}"]`)!;
+    let idx = 0;
+    let timers: number[] = [];
+    let running = false;
+
+    const at = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms));
+    const reset = () => {
+      st.forEach((s) => s.classList.remove('on', 'fail', 'off'));
+      ln.forEach((l) => l.classList.remove('on', 'go'));
+    };
+    const pulse = (l: HTMLElement) => {
+      l.classList.remove('go');
+      void l.offsetWidth;
+      l.classList.add('go', 'on');
+    };
+
+    const run = () => {
+      const e = events[idx];
+      reset();
+      v('source').textContent = e.source;
+      v('what').textContent = e.what;
+      v('check').textContent = '…';
+      v('order').textContent = '…';
+
+      at(100, () => st[0].classList.add('on'));
+      at(500, () => pulse(ln[0]));
+      at(1100, () => {
+        v('check').textContent = e.check;
+        st[1].classList.add(e.ok ? 'on' : 'fail');
+      });
+      if (e.ok) {
+        at(1600, () => pulse(ln[1]));
+        at(2200, () => {
+          v('order').textContent = e.order;
+          st[2].classList.add('on');
+        });
+        at(2700, () => pulse(ln[2]));
+        at(3300, () => st[3].classList.add('on'));
+      } else {
+        at(1700, () => {
+          v('order').textContent = e.order;
+          st[2].classList.add('off');
+          ln[1].classList.remove('on');
+        });
+        at(2200, () => st[3].classList.add('on'));
+      }
+      at(5600, () => {
+        idx = (idx + 1) % events.length;
+        run();
+      });
+    };
+
+    const start = () => {
+      if (running) return;
+      running = true;
+      run();
+    };
+    const stop = () => {
+      running = false;
+      timers.forEach(clearTimeout);
+      timers = [];
+    };
+
+    let inView = false;
+    new IntersectionObserver(
+      ([en]) => {
+        inView = en.isIntersecting;
+        inView ? start() : stop();
+      },
+      { threshold: 0.3 },
+    ).observe(fig);
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : inView && start()));
+  }
+</script>

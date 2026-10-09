@@ -73,17 +73,18 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
       <ol class="steps">
         <li>
           <h3>A signal fires</h3>
-          <p>Each strategy watches the market on TradingView and sends a buy or sell signal when its rules are met, at the close of a candle or as soon as price hits a level during it.</p>
+          <p>Most strategies watch the market on TradingView and send a buy or sell signal when their rules are met, at the close of a candle or as soon as price hits a level during it. One rebalances on a fixed weekly schedule.</p>
         </li>
         <li>
           <h3>The bridge checks it</h3>
-          <p>A small server checks position limits, available cash and overlaps with other strategies before acting.</p>
+          <p>A small server checks each signal before acting: position limits, available cash, duplicates and overlaps with other strategies. Refused signals are logged, never forced through.</p>
         </li>
         <li>
           <h3>The order goes to OKX</h3>
           <p>The order is placed on OKX Europe and every fill is logged, so results can be checked trade by trade.</p>
         </li>
       </ol>
+      <a class="more on-dark" href="/how-it-works">How it works in detail</a>
     </div>
   </section>
 
@@ -235,6 +236,14 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .more:hover {
     text-decoration-color: var(--ink);
+  }
+  .more.on-dark {
+    margin-top: 2.5rem;
+    color: var(--on-dark);
+  }
+  .more.on-dark:hover {
+    color: var(--gold-bright);
+    text-decoration-color: var(--gold-bright);
   }
   .legend {
     display: flex;

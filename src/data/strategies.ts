@@ -199,7 +199,7 @@ const all: Strategy[] = [
     id: 'csm',
     name: 'Cross-Sectional Momentum',
     timeframe: 'Weekly',
-    market: 'Crypto perpetual futures, long and short',
+    market: 'Crypto futures, long and short',
     liveSince: '2026-01-31',
     summary:
       'Ranks a filtered set of coins by recent performance every week. Goes long the strongest and short the weakest, so it can earn in rising and falling markets.',
@@ -208,7 +208,7 @@ const all: Strategy[] = [
       tagline:
         'Every week, it buys the strongest of the largest coins and shorts the weakest, betting that recent winners keep beating recent losers.',
       facts: [
-        { label: 'Markets', value: 'The five largest coins, perpetual futures' },
+        { label: 'Markets', value: 'The five largest coins, futures' },
         { label: 'Rebalancing', value: 'Weekly' },
         { label: 'Direction', value: 'Long and short' },
         { label: 'Leverage', value: '1.5x, isolated margin' },
@@ -253,7 +253,7 @@ const all: Strategy[] = [
       },
       risk: [
         'Long and short at the same time. In a broad sell-off the short offsets part of the losses on the longs, and in a downtrend the book is balanced one against one.',
-        'Leverage of 1.5x on perpetual futures, with isolated margin for each position.',
+        'Leverage of 1.5x on futures, with isolated margin for each position.',
         'Equal size for every position, reset weekly, so no single coin dominates.',
         'Only the largest, most liquid coins, which keeps trading costs and slippage low.',
       ],

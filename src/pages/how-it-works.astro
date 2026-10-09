@@ -1,0 +1,384 @@
+---
+import Base from '../layouts/Base.astro';
+import FlowDiagram from '../components/diagrams/FlowDiagram.astro';
+
+const checks = [
+  { title: 'Authentic', text: 'Only signals from the system’s own alerts are accepted. Anything else is rejected at the door.' },
+  { title: 'Known and switched on', text: 'The signal belongs to a registered strategy, and that strategy is currently enabled. Each strategy can be paused on its own.' },
+  { title: 'In the universe', text: 'The coin is on the list of approved markets, and on the strategy’s own list where it has one.' },
+  { title: 'Not a duplicate', text: 'A signal that was already handled for the same candle is dropped, so a repeated alert never trades twice.' },
+  { title: 'Room for it', text: 'The strategy has a free position slot, or room for another tranche in the position it already holds.' },
+  { title: 'No clash', text: 'Where it matters, a coin that the futures strategy already holds is skipped, so two strategies do not pile into the same coin.' },
+  { title: 'Enough cash', text: 'There is enough free cash for the order, with a reserve kept aside.' },
+  { title: 'Big enough', text: 'The order meets the exchange’s minimum size, so it does not fail halfway.' },
+];
+
+const markets = [
+  { name: 'ATR Mean Reversion', market: 'Spot', lev: 'None' },
+  { name: 'RSI Mean Reversion', market: 'Spot', lev: 'None' },
+  { name: 'RSI Red Legs, coins', market: 'Spot', lev: 'None' },
+  { name: 'Ichimoku Trend Following', market: 'Spot', lev: 'None' },
+  { name: 'RSI Red Legs, QQQ', market: 'Perpetual-style future', lev: 'Leveraged' },
+  { name: 'Cross-Sectional Momentum', market: 'Dated futures, isolated margin', lev: '1.5x' },
+];
+---
+
+<Base title="How it works | Trading B(u)y Signal" description="How a signal becomes a trade: alerts and schedules, the checks in between, execution on OKX Europe and a record of every step.">
+  <section class="head dark grain">
+    <header class="site-header wrap">
+      <a class="wordmark" href="/">Trading B(u)y Signal</a>
+      <a class="back" href="/">Back to start page</a>
+    </header>
+    <div class="wrap intro">
+      <h1>How it works</h1>
+      <p class="tagline">From a signal to a filled order, without anyone clicking a button. Every step is checked, and every step is written down.</p>
+    </div>
+    <div class="wrap visual">
+      <FlowDiagram />
+    </div>
+  </section>
+
+  <section class="block grain" aria-labelledby="signals-title">
+    <div class="wrap narrow">
+      <p class="kicker">1. Signals</p>
+      <h2 id="signals-title">Where trades start</h2>
+      <p>Each strategy is a fixed set of rules. Before it trades real money, it is backtested over several years of data and then forward-tested on live prices. New strategies first run in a test mode, in which the system records what it would do without placing any orders.</p>
+      <div class="pair">
+        <div>
+          <h3>Alerts from TradingView</h3>
+          <p>Four strategies run as scripts on TradingView. When their rules are met, they send an alert with the strategy, the coin and the action. Some react at the close of a daily or 4-hour candle; others have orders waiting at a price level, which can fill at any time of day.</p>
+        </div>
+        <div>
+          <h3>A weekly schedule</h3>
+          <p>Cross-Sectional Momentum does not wait for alerts. Once a week, a scheduled job fetches fresh prices from an independent data source, ranks the coins and rebalances the positions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block dark grain" aria-labelledby="bridge-title">
+    <div class="wrap">
+      <p class="kicker">2. The bridge</p>
+      <h2 id="bridge-title">Every signal is checked</h2>
+      <p class="lead">Alerts go to a small server, the bridge, which sits between TradingView and the exchange. Before it acts on a buy signal, all of these checks have to pass:</p>
+      <ul class="checks" data-checks>
+        {checks.map((c, i) => (
+          <li style={`--i:${i}`}>
+            <span class="lamp" aria-hidden="true"></span>
+            <h3>{c.title}</h3>
+            <p>{c.text}</p>
+          </li>
+        ))}
+      </ul>
+      <p class="verdict" style={`--i:${checks.length}`}>
+        <span class="lamp" aria-hidden="true"></span>All clear: the order goes out.
+      </p>
+      <div class="notes">
+        <p class="note">If a check fails, the signal is logged and skipped. Nothing is forced through, and a refused signal can be retried safely.</p>
+        <p class="note">After a market-wide sell-off, many alerts can arrive within seconds. Each strategy’s signals are handled one at a time, and a slot is reserved before any order is placed, so the limits hold even then.</p>
+        <p class="note">The weekly job for Cross-Sectional Momentum runs its own checks: it only trades when the price data for every coin is complete and up to date, and it confirms that last week’s positions are closed before it opens new ones.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block grain" aria-labelledby="exec-title">
+    <div class="wrap narrow">
+      <p class="kicker">3. Execution</p>
+      <h2 id="exec-title">Orders on OKX Europe</h2>
+      <p>All trades run on OKX Europe, the exchange’s EU platform. Spot trades are made against USDC. Each strategy has its own budget and its own book of positions.</p>
+      <table class="markets">
+        <thead>
+          <tr><th scope="col">Strategy</th><th scope="col">Market</th><th scope="col">Leverage</th></tr>
+        </thead>
+        <tbody>
+          {markets.map((m) => (
+            <tr><th scope="row">{m.name}</th><td>{m.market}</td><td>{m.lev}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <ul class="plain">
+        <li>Orders are placed at market. Large orders are split into smaller pieces to keep the price impact low.</li>
+        <li>Every fill is confirmed with the exchange before the position is recorded, using the amount actually filled.</li>
+        <li>When two strategies hold the same coin, each one tracks only its own share, and a sell signal only ever sells what that strategy bought.</li>
+        <li>The futures positions use isolated margin, so a loss in one position can never draw on the rest of the account.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block dark grain" aria-labelledby="records-title">
+    <div class="wrap">
+      <p class="kicker">4. Records and control</p>
+      <h2 id="records-title">Every step is written down</h2>
+      <div class="grid4">
+        <div>
+          <h3>Logs</h3>
+          <p>Every signal, every decision, every order and every fill is logged with its time, including the signals that were refused.</p>
+        </div>
+        <div>
+          <h3>Saved state</h3>
+          <p>Each strategy’s open positions are saved after every change, so a restart picks up exactly where it stopped.</p>
+        </div>
+        <div>
+          <h3>Reconciliation</h3>
+          <p>The recorded positions are regularly checked against the exchange by hand. Differences are investigated, not ignored.</p>
+        </div>
+        <div>
+          <h3>Trade tracker</h3>
+          <p>Closed trades are collected per strategy, with entry, exit, size and result, so every strategy can be judged on its own.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* Head ------------------------------------------------------------------ */
+  .head {
+    padding-bottom: clamp(3rem, 7vw, 5rem);
+  }
+  .site-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.75rem clamp(2.5rem, 7vw, 4.5rem);
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .back {
+    font-size: 0.9375rem;
+    color: var(--on-dark-muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--gold-bright);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.5rem, 6vw, 4.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: #f2f1ee;
+  }
+  .tagline {
+    margin: 1.5rem 0 0;
+    max-width: 36rem;
+    font-size: clamp(1.0625rem, 1.8vw, 1.25rem);
+    color: var(--on-dark-muted);
+  }
+  .visual {
+    margin-top: clamp(3rem, 7vw, 4.5rem);
+  }
+
+  /* Blocks ---------------------------------------------------------------- */
+  .block {
+    padding-block: clamp(4rem, 9vw, 6.5rem);
+  }
+  .narrow > * {
+    max-width: 44rem;
+  }
+  .kicker {
+    margin: 0 0 0.5rem !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gold) !important;
+  }
+  .block:not(.dark) .kicker {
+    color: #8a6d33 !important;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    letter-spacing: -0.015em;
+    margin-bottom: 1.25rem;
+  }
+  .dark h2 {
+    color: #f2f1ee;
+  }
+  .block p {
+    margin: 0 0 1rem;
+    color: var(--ink-soft);
+  }
+  .dark p {
+    color: var(--on-dark-muted);
+  }
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  .dark h3 {
+    color: #f2f1ee;
+  }
+  .pair {
+    display: grid;
+    gap: 1.75rem;
+    margin-top: 2rem;
+  }
+  .pair > div,
+  .grid4 > div {
+    padding-top: 1rem;
+    border-top: 1px solid var(--ink);
+  }
+  .grid4 > div {
+    border-top-color: var(--rule);
+  }
+  .pair p,
+  .grid4 p {
+    margin: 0;
+  }
+  .plain {
+    margin: 2rem 0 0;
+    padding-left: 1.2rem;
+    color: var(--ink-soft);
+  }
+  .plain li {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Checks ---------------------------------------------------------------- */
+  .lead {
+    max-width: 40rem;
+  }
+  .checks {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .checks li {
+    position: relative;
+    padding: 1.5rem 1.5rem 1.5rem 3.25rem;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .checks p {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+  .lamp {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.85rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--on-dark-muted);
+    transition:
+      background-color 300ms ease calc(var(--i) * 180ms),
+      border-color 300ms ease calc(var(--i) * 180ms),
+      box-shadow 300ms ease calc(var(--i) * 180ms);
+  }
+  [data-checks].lit .lamp,
+  .lit ~ .verdict .lamp {
+    background: var(--gold-bright);
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px 2px rgba(230, 201, 136, 0.55);
+  }
+  .verdict {
+    position: relative;
+    margin: 1.75rem 0 0 !important;
+    padding-left: 1.75rem;
+    font-family: var(--serif);
+    font-size: clamp(1.25rem, 2.4vw, 1.625rem);
+    color: var(--on-dark-muted) !important;
+    transition: color 400ms ease calc(var(--i) * 180ms);
+  }
+  .verdict .lamp {
+    left: 0;
+    top: 0.55em;
+  }
+  .lit ~ .verdict {
+    color: var(--gold-bright) !important;
+  }
+  .notes {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .note {
+    max-width: 44rem;
+    font-size: 0.9375rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--gold);
+    margin: 0 !important;
+  }
+
+  /* Markets table --------------------------------------------------------- */
+  .markets {
+    width: 100%;
+    margin-top: 1.5rem;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .markets th,
+  .markets td {
+    text-align: left;
+    padding: 0.65rem 1rem 0.65rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .markets thead th {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom-color: var(--ink);
+  }
+  .markets tbody th {
+    font-weight: 600;
+  }
+  .markets td {
+    color: var(--ink-soft);
+  }
+
+  /* Records --------------------------------------------------------------- */
+  .grid4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 60rem) {
+    .checks,
+    .grid4 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 40rem) {
+    .checks,
+    .grid4 {
+      grid-template-columns: 1fr;
+    }
+    .markets th,
+    .markets td {
+      padding-right: 0.6rem;
+    }
+  }
+</style>
+
+<script>
+  const list = document.querySelector<HTMLElement>('[data-checks]');
+  if (list) {
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          list.classList.add('lit');
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(list);
+  }
+</script>
