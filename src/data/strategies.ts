@@ -360,6 +360,83 @@ const all: Strategy[] = [
     summary:
       'Builds a position in up to five equal legs while a sell-off continues, guided by RSI, and closes the whole ladder on the rebound.',
     glyph: 'ladder',
+    details: {
+      tagline:
+        'Starts buying when a market is oversold, adds a leg on every red day, and sells the whole ladder as soon as a small profit is in.',
+      facts: [
+        { label: 'Markets', value: '20 large coins, and the Nasdaq-100 (QQQ)' },
+        { label: 'Chart', value: 'Daily candles' },
+        { label: 'Direction', value: 'Long only' },
+        { label: 'Leverage', value: 'None on coins, 3x on QQQ' },
+        { label: 'Positions', value: 'Up to five equal legs each' },
+        { label: 'Live since', value: '18 September 2026' },
+      ],
+      idea: [
+        'Dips rarely end on the first red day. A sell-off often runs for several days, and trying to pick the exact low is a guessing game. This strategy does not guess. It starts small when a market first looks oversold and keeps adding as long as the selling continues, so the average price falls with every leg.',
+        'Because the average keeps moving down, a modest bounce is enough to turn the whole position into a profit. The strategy does not wait for a full recovery: it sells everything as soon as a small, fixed profit over the average is reached, often during the day. The same logic runs on a set of large coins and on the Nasdaq-100, through QQQ.',
+      ],
+      entry: {
+        title: 'How it trades',
+        intro: 'Every dip follows the same ladder, built at the daily close:',
+        kind: 'steps',
+        verdict: 'Flat again, the strategy waits for the next dip.',
+        items: [
+          {
+            title: 'Healthy market',
+            text: 'For coins, a ladder may only start while price is above its long-term average and the trend is still rising. QQQ trades without this check.',
+          },
+          {
+            title: 'First leg',
+            text: 'The short-term RSI closes deep in oversold territory. The first of five equal legs is bought.',
+          },
+          {
+            title: 'Red days add legs',
+            text: 'Every following day that closes below its open adds one more leg, up to five. Green days add nothing.',
+          },
+          {
+            title: 'Target',
+            text: 'A sell order sits just above the average entry price and moves down with every new leg.',
+          },
+          {
+            title: 'Sell the bounce',
+            text: 'When price touches the target, the whole ladder is sold at once. A strong rebound in the short-term RSI closes it at the daily close as well.',
+          },
+        ],
+        note: 'The trend check only decides whether a ladder may start. Once it runs, legs are added on red days whatever the trend does.',
+      },
+      exit: {
+        title: 'When it sells',
+        items: [
+          {
+            title: 'Profit target',
+            text: 'A fixed small profit over the average entry price. The order waits in the market, so it can fill at any time of day, not only at the close. On QQQ the target is smaller, because the index moves less than coins.',
+          },
+          {
+            title: 'RSI recovery',
+            text: 'If the short-term RSI recovers strongly before the target is hit, the ladder is closed at the daily close.',
+          },
+          {
+            title: 'No stop-loss',
+            text: 'There is no stop. Risk is limited by the five-leg budget: a ladder never invests more than its fixed slot, however long the sell-off lasts.',
+          },
+        ],
+      },
+      risk: [
+        'Coins are traded without leverage. QQQ uses 3x on a perpetual future, which the index’s lower volatility allows; a deep fall in the Nasdaq still hits that slot harder.',
+        'Each ladder has a fixed budget split into five equal legs, so the position never grows beyond its slot.',
+        'The trend check keeps coin ladders out of falling markets, so most sell-offs that start in a bear market are skipped.',
+        'No stop-loss. A sell-off that keeps going after all five legs are in is held until it bounces.',
+      ],
+      goodIn: [
+        'Rising markets with frequent short dips, which give many small, quick wins.',
+        'Sell-offs that run for several days and then bounce: the ladder buys more as the price falls and needs only a small rebound.',
+      ],
+      badIn: [
+        'Long, steady declines after all legs are in, where the bounce does not come for a long time.',
+        'Sharp crashes, which fill the whole ladder in a few days at prices that keep falling.',
+        'Strong, uninterrupted rallies, where few dips are deep enough to start a ladder.',
+      ],
+    },
   },
 ];
 

@@ -1,0 +1,252 @@
+---
+// Illustration of how RSI Red Legs trades, on daily candles: a first leg on
+// an oversold close, one more leg on every red candle, an average price and
+// a profit target that step down with each leg, and an exit when price
+// touches the target during the day. A panel below shows the legs in use.
+// Synthetic data; the target distance is illustrative, not the real setting.
+
+type C = [number, number, number, number]; // open, high, low, close
+const candles: C[] = [
+  [100, 101.2, 99.6, 100.9],
+  [100.9, 101.9, 100.5, 101.6],
+  [101.6, 102.4, 101.0, 101.3],
+  [101.3, 102.8, 101.1, 102.5],
+  [102.5, 103.3, 102.0, 103.0],
+  [103.0, 103.6, 102.2, 102.6],
+  [102.6, 104.0, 102.4, 103.7],
+  [103.7, 104.6, 103.2, 104.3],
+  [104.3, 105.0, 103.6, 104.7],
+  [104.7, 105.2, 103.4, 103.8],
+  [103.8, 104.1, 102.1, 102.4],
+  [102.4, 103.1, 101.6, 102.8],
+  [102.8, 103.0, 100.6, 100.9],
+  [100.9, 101.4, 99.2, 99.6],
+  [99.6, 100.6, 98.9, 100.3],
+  [100.3, 100.5, 98.4, 98.8],
+  [98.8, 101.0, 98.5, 100.7],
+  [100.7, 103.3, 100.4, 102.6],
+  [102.6, 103.6, 102.0, 103.2],
+  [103.2, 104.1, 102.7, 103.9],
+  [103.9, 104.4, 103.1, 103.5],
+  [103.5, 105.0, 103.3, 104.7],
+  [104.7, 105.6, 104.2, 105.2],
+  [105.2, 106.0, 104.8, 105.7],
+];
+const legIdx = [10, 12, 13, 15]; // first leg on the oversold close, then red candles
+const exitIdx = 17;
+const MAX_LEGS = 5;
+const gap = 2.4; // illustrative target distance
+
+const W = 760;
+const H = 310;
+const x0 = 44;
+const dx = 29.5;
+const cw = 13;
+const X = (i: number) => x0 + i * dx;
+const Y = (p: number) => 24 + ((107 - p) / 9.5) * 176;
+
+// Average entry and target after each leg, held until the next leg or exit.
+const steps = legIdx.map((idx, k) => {
+  const legs = legIdx.slice(0, k + 1);
+  const avg = legs.reduce((s, i) => s + candles[i][3], 0) / legs.length;
+  const until = k + 1 < legIdx.length ? legIdx[k + 1] : exitIdx;
+  return { from: X(idx), to: X(until), avg, target: avg + gap };
+});
+const exitPrice = steps[steps.length - 1].target;
+const stepPath = (key: 'avg' | 'target') =>
+  steps.map((s, k) => `${k ? 'L' : 'M'}${s.from},${Y(s[key]).toFixed(1)} L${s.to},${Y(s[key]).toFixed(1)}`).join(' ');
+
+// Legs in use per day, for the panel.
+const panelBase = 292;
+const panelH = 40;
+const legsOn = candles.map((_, i) => (i >= legIdx[0] && i < exitIdx ? legIdx.filter((l) => l <= i).length : 0));
+---
+
+<figure class="diagram">
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Illustration: after an oversold close a first leg is bought, and each following red candle adds another leg. The average entry price and the profit target step down with every leg. When price touches the target during the day, the whole position is sold.">
+    {[60, 120, 180].map((gy) => <line class="grid" x1="0" x2={W} y1={gy} y2={gy} />)}
+
+    {candles.map(([o, h, l, c], i) => (
+      <g class={`candle ${c >= o ? 'up' : 'down'}`} style={`--i:${i}`}>
+        <line x1={X(i)} x2={X(i)} y1={Y(h)} y2={Y(l)} />
+        <rect x={X(i) - cw / 2} y={Y(Math.max(o, c))} width={cw} height={Math.max(1.5, Math.abs(Y(o) - Y(c)))} />
+      </g>
+    ))}
+
+    <path class="avg" d={stepPath('avg')} />
+    <path class="target" d={stepPath('target')} />
+
+    {legIdx.map((i, k) => <circle class="buy" style={`--d:${1.2 + k * 0.15}s`} cx={X(i)} cy={Y(candles[i][3])} r="5.5" />)}
+    <circle class="sell" style="--d:1.9s" cx={X(exitIdx)} cy={Y(exitPrice)} r="6" />
+
+    <g class="panel">
+      <line class="base" x1="20" x2={W - 20} y1={panelBase} y2={panelBase} />
+      {legsOn.map((n, i) =>
+        n > 0 && (
+          <g style={`--i:${i}`}>
+            <rect class="slot" x={X(i) - cw / 2} y={panelBase - panelH} width={cw} height={panelH} />
+            <rect class="fill" x={X(i) - cw / 2} y={panelBase - (n / MAX_LEGS) * panelH} width={cw} height={(n / MAX_LEGS) * panelH} />
+          </g>
+        ),
+      )}
+    </g>
+
+    <g class="num" style="--d:1.2s"><circle cx={X(10) - 4} cy={Y(candles[10][3]) + 30} r="11" /><text x={X(10) - 4} y={Y(candles[10][3]) + 30}>1</text></g>
+    <g class="num" style="--d:1.5s"><circle cx={X(13) + 2} cy={Y(99.2) + 22} r="11" /><text x={X(13) + 2} y={Y(99.2) + 22}>2</text></g>
+    <g class="num" style="--d:1.6s"><circle cx={X(11) + 14} cy={Y(steps[0].target) - 18} r="11" /><text x={X(11) + 14} y={Y(steps[0].target) - 18}>3</text></g>
+    <g class="num" style="--d:1.9s"><circle cx={X(exitIdx) + 26} cy={Y(exitPrice) + 18} r="11" /><text x={X(exitIdx) + 26} y={Y(exitPrice) + 18}>4</text></g>
+    <g class="num" style="--d:1s"><circle cx={X(10) - 26} cy={panelBase - 20} r="11" /><text x={X(10) - 26} y={panelBase - 20}>5</text></g>
+  </svg>
+
+  <ol class="key">
+    <li><strong>First leg:</strong> the short-term RSI closes deep in oversold territory, and the first of five equal legs is bought.</li>
+    <li><strong>Red days add legs:</strong> while the position is open, every day that closes below its open adds one more leg.</li>
+    <li><strong>Average and target:</strong> the dashed line is the average entry price, the gold line the profit target just above it. Both move down with each leg.</li>
+    <li><strong>Exit:</strong> price touches the target during the day, and the whole ladder is sold at once.</li>
+    <li><strong>Legs in use:</strong> how much of the five-leg budget is invested.</li>
+  </ol>
+</figure>
+
+<style>
+  .diagram {
+    margin: 0;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .candle line {
+    stroke: var(--on-dark-muted);
+    stroke-width: 1.2;
+  }
+  .candle rect {
+    stroke-width: 1.2;
+  }
+  .candle.up rect {
+    fill: var(--stone);
+    stroke: var(--on-dark);
+  }
+  .candle.down rect {
+    fill: var(--on-dark-muted);
+    stroke: var(--on-dark-muted);
+  }
+  .avg,
+  .target {
+    fill: none;
+    stroke-width: 1.4;
+    opacity: 0;
+  }
+  .avg {
+    stroke: var(--on-dark);
+    stroke-dasharray: 4 4;
+  }
+  .target {
+    stroke: var(--gold);
+  }
+  .buy {
+    fill: var(--gold-bright);
+    filter: drop-shadow(0 0 6px rgba(230, 201, 136, 0.7));
+  }
+  .sell {
+    fill: var(--stone);
+    stroke: var(--on-dark);
+    stroke-width: 2;
+  }
+  .panel .base {
+    stroke: var(--rule);
+  }
+  .panel .slot {
+    fill: none;
+    stroke: var(--rule);
+  }
+  .panel .fill {
+    fill: var(--gold);
+    opacity: 0.85;
+  }
+  .num circle {
+    fill: var(--stone-2);
+    stroke: var(--on-dark-muted);
+    stroke-width: 1;
+  }
+  .num text {
+    fill: var(--on-dark);
+    font: 600 12px var(--sans);
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  @media (max-width: 40rem) {
+    .num circle {
+      r: 20px;
+    }
+    .num text {
+      font-size: 22px;
+    }
+  }
+
+  .candle,
+  .panel g {
+    opacity: 0;
+  }
+  .buy,
+  .sell,
+  .num {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(0.3);
+  }
+  .diagram.drawn .candle,
+  .diagram.drawn .panel g {
+    opacity: 1;
+    transition: opacity 300ms ease calc(var(--i) * 50ms);
+  }
+  .diagram.drawn .avg,
+  .diagram.drawn .target {
+    opacity: 1;
+    transition: opacity 500ms ease 1.5s;
+  }
+  .diagram.drawn .buy,
+  .diagram.drawn .sell,
+  .diagram.drawn .num {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 250ms ease-out var(--d, 0s),
+      transform 400ms cubic-bezier(0.3, 1.5, 0.6, 1) var(--d, 0s);
+  }
+
+  .key {
+    margin: 1.5rem 0 0;
+    padding-left: 1.4rem;
+    color: var(--on-dark-muted);
+    font-size: 0.9375rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .key strong {
+    color: var(--on-dark);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  const fig = document.querySelector<HTMLElement>('figure.diagram');
+  if (fig) {
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          fig.classList.add('drawn');
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(fig);
+  }
+</script>
