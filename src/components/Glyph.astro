@@ -1,0 +1,107 @@
+---
+// Small line diagram of how a strategy trades.
+// Teal dots mark entries, red dots mark exits; the grey line is price.
+import type { Glyph } from '../data/strategies';
+
+interface Props {
+  kind: Glyph;
+  label: string;
+}
+
+const { kind, label } = Astro.props;
+---
+
+<svg class="glyph" viewBox="0 0 120 56" role="img" aria-label={label}>
+  {kind === 'atr' && (
+    <>
+      <path class="band" d="M4 38 L116 38" />
+      <path class="price" d="M4 24 L22 22 L36 26 L46 47 L56 30 L70 22 L86 20 L100 23 L116 21" />
+      <circle class="buy" cx="46" cy="47" r="3.6" />
+      <circle class="sell" cx="70" cy="22" r="3.6" />
+    </>
+  )}
+  {kind === 'ichimoku' && (
+    <>
+      <path class="cloud" d="M4 44 L30 40 L60 34 L90 26 L116 18 L116 30 L90 36 L60 44 L30 48 L4 50 Z" />
+      <path class="price" d="M4 46 L18 42 L30 36 L44 30 L58 26 L74 20 L90 14 L104 10 L116 8" />
+      <circle class="buy" cx="30" cy="36" r="3.6" />
+    </>
+  )}
+  {kind === 'momentum' && (
+    <>
+      <rect class="long" x="10" y="6" width="12" height="40" rx="1.5" />
+      <rect class="long" x="28" y="14" width="12" height="32" rx="1.5" />
+      <rect class="flat" x="46" y="26" width="12" height="20" rx="1.5" />
+      <rect class="flat" x="64" y="32" width="12" height="14" rx="1.5" />
+      <rect class="short" x="82" y="38" width="12" height="8" rx="1.5" />
+      <rect class="short" x="100" y="42" width="12" height="4" rx="1.5" />
+      <path class="base" d="M4 46 L116 46" />
+    </>
+  )}
+  {kind === 'rsi' && (
+    <>
+      <path class="band" d="M4 40 L116 40" />
+      <path class="price" d="M4 16 L18 22 L30 36 L40 43 L50 46 L60 48 L72 34 L86 22 L100 18 L116 16" />
+      <circle class="buy" cx="40" cy="43" r="3.2" />
+      <circle class="buy" cx="50" cy="46" r="3.2" />
+      <circle class="buy" cx="60" cy="48" r="3.2" />
+      <circle class="sell" cx="86" cy="22" r="3.6" />
+    </>
+  )}
+  {kind === 'ladder' && (
+    <>
+      <path class="price" d="M4 10 L18 10 L18 18 L30 18 L30 26 L42 26 L42 34 L54 34 L54 42 L66 42 L80 30 L94 20 L116 14" />
+      <circle class="buy" cx="18" cy="18" r="3" />
+      <circle class="buy" cx="30" cy="26" r="3" />
+      <circle class="buy" cx="42" cy="34" r="3" />
+      <circle class="buy" cx="54" cy="42" r="3" />
+      <circle class="buy" cx="66" cy="42" r="3" />
+      <circle class="sell" cx="94" cy="20" r="3.6" />
+    </>
+  )}
+</svg>
+
+<style>
+  .glyph {
+    width: 120px;
+    height: 56px;
+    flex: none;
+    overflow: visible;
+  }
+  .price {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .band,
+  .base {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+  }
+  .base {
+    stroke-dasharray: none;
+  }
+  .cloud {
+    fill: var(--buy);
+    opacity: 0.16;
+  }
+  .buy {
+    fill: var(--buy);
+  }
+  .sell {
+    fill: var(--sell);
+  }
+  .long {
+    fill: var(--buy);
+  }
+  .short {
+    fill: var(--sell);
+  }
+  .flat {
+    fill: var(--rule);
+  }
+</style>

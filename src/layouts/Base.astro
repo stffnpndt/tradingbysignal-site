@@ -1,0 +1,172 @@
+---
+import '@fontsource-variable/schibsted-grotesk';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta name="theme-color" content="#EDF0F2" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="wordmark" href="/">Trading B(u)y Signal</a>
+        <span class="tagline">Trading done rationally</span>
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Not financial advice. Everything on this site is for information only. Trading crypto
+          assets and leveraged products carries a high risk of loss.
+        </p>
+        <p>© {new Date().getFullYear()} Trading B(u)y Signal</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --paper: #edf0f2;
+    --surface: #f7f9fa;
+    --ink: #14213a;
+    --text: #2b3850;
+    --muted: #5d6a7e;
+    --rule: #c9d0d8;
+    --buy: #0e7a6a;
+    --sell: #b2453a;
+    --focus: #2c5fd6;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0f1726;
+      --surface: #16203a;
+      --ink: #e6ebf2;
+      --text: #c3ccd9;
+      --muted: #8d99ab;
+      --rule: #2a3650;
+      --buy: #2fb39e;
+      --sell: #e0705f;
+      --focus: #8fb0ff;
+      color-scheme: dark;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    font-feature-settings: 'tnum' 0;
+  }
+  h1,
+  h2,
+  h3 {
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.15;
+  }
+  a {
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    width: min(68rem, 100% - 2rem);
+    margin-inline: auto;
+  }
+
+  .skip {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.5rem 0.75rem;
+    z-index: 10;
+  }
+  .skip:focus {
+    top: 1rem;
+  }
+
+  .site-header .wrap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .wordmark {
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .tagline {
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+
+  .site-footer {
+    margin-top: 6rem;
+  }
+  .site-footer .wrap {
+    border-top: 1px solid var(--rule);
+    padding-block: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .site-footer p {
+    margin: 0;
+    max-width: 38rem;
+  }
+
+  @media (max-width: 40rem) {
+    .tagline {
+      display: none;
+    }
+  }
+</style>
