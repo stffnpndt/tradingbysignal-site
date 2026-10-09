@@ -1,5 +1,6 @@
 ---
 import '@fontsource-variable/schibsted-grotesk';
+import '@fontsource-variable/bodoni-moda';
 
 interface Props {
   title: string;
@@ -23,16 +24,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
-    <meta name="theme-color" content="#EDF0F2" />
+    <meta name="theme-color" content="#1b1c1e" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="wrap">
-        <a class="wordmark" href="/">Trading B(u)y Signal</a>
-        <span class="tagline">Trading done rationally</span>
-      </div>
-    </header>
     <main id="main">
       <slot />
     </main>
@@ -50,30 +45,28 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 
 <style is:global>
   :root {
-    --paper: #edf0f2;
-    --surface: #f7f9fa;
-    --ink: #14213a;
-    --text: #2b3850;
-    --muted: #5d6a7e;
-    --rule: #c9d0d8;
-    --buy: #0e7a6a;
-    --sell: #b2453a;
-    --focus: #2c5fd6;
+    /* Stone */
+    --stone: #1b1c1e;
+    --stone-2: #26272a;
+    --fog: #d9dadb;
+    --fog-2: #c9cacc;
+    /* Text */
+    --ink: #1a1b1d;
+    --ink-soft: #45474c;
+    --muted: #5f6267;
+    --on-dark: #e7e7e5;
+    --on-dark-muted: #9b9da1;
+    /* Veins */
+    --gold: #c3a05a;
+    --gold-bright: #e6c988;
+    /* Lines */
+    --rule: rgba(26, 27, 29, 0.16);
+    --rule-dark: rgba(231, 231, 229, 0.11);
+    --focus: #e6c988;
+
+    --serif: 'Bodoni Moda Variable', 'Bodoni 72', Georgia, serif;
+    --sans: 'Schibsted Grotesk Variable', system-ui, sans-serif;
     color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #0f1726;
-      --surface: #16203a;
-      --ink: #e6ebf2;
-      --text: #c3ccd9;
-      --muted: #8d99ab;
-      --rule: #2a3650;
-      --buy: #2fb39e;
-      --sell: #e0705f;
-      --focus: #8fb0ff;
-      color-scheme: dark;
-    }
   }
 
   *,
@@ -86,22 +79,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   }
   body {
     margin: 0;
-    background: var(--paper);
-    color: var(--text);
-    font-family: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+    background: var(--fog);
+    color: var(--ink);
+    font-family: var(--sans);
     font-size: 1.0625rem;
     line-height: 1.55;
-    font-feature-settings: 'tnum' 0;
   }
   h1,
   h2,
   h3 {
-    color: var(--ink);
     margin: 0;
-    line-height: 1.15;
+    line-height: 1.12;
   }
   a {
-    color: var(--ink);
+    color: inherit;
   }
   :focus-visible {
     outline: 2px solid var(--focus);
@@ -110,63 +101,68 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   }
 
   .wrap {
-    width: min(68rem, 100% - 2rem);
+    width: min(70rem, 100% - 2.5rem);
     margin-inline: auto;
+  }
+
+  /* Stone texture: fine grain over both the dark and the light surfaces. */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .dark {
+    background: var(--stone);
+    color: var(--on-dark);
+    --rule: var(--rule-dark);
+    --muted: var(--on-dark-muted);
   }
 
   .skip {
     position: absolute;
     left: 1rem;
     top: -3rem;
-    background: var(--ink);
-    color: var(--paper);
+    background: var(--gold-bright);
+    color: var(--stone);
     padding: 0.5rem 0.75rem;
-    z-index: 10;
+    z-index: 20;
   }
   .skip:focus {
     top: 1rem;
   }
 
-  .site-header .wrap {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-block: 1.5rem;
-    border-bottom: 1px solid var(--rule);
-  }
-  .wordmark {
-    font-weight: 700;
-    font-size: 1.125rem;
-    letter-spacing: -0.01em;
-    text-decoration: none;
-  }
-  .tagline {
-    color: var(--muted);
-    font-size: 0.9375rem;
-  }
-
-  .site-footer {
-    margin-top: 6rem;
-  }
   .site-footer .wrap {
-    border-top: 1px solid var(--rule);
-    padding-block: 2rem 3rem;
+    padding-block: 2.5rem 3rem;
     display: flex;
     justify-content: space-between;
     gap: 2rem;
     flex-wrap: wrap;
     font-size: 0.875rem;
     color: var(--muted);
+    border-top: 1px solid var(--rule);
   }
   .site-footer p {
     margin: 0;
     max-width: 38rem;
   }
 
-  @media (max-width: 40rem) {
-    .tagline {
-      display: none;
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 </style>

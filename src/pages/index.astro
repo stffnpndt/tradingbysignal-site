@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Veins from '../components/Veins.astro';
 import Lanes from '../components/Lanes.astro';
 import Glyph from '../components/Glyph.astro';
 import { strategies } from '../data/strategies';
@@ -11,98 +12,171 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   title="Trading B(u)y Signal: a rule-based crypto trading system"
   description="Five rule-based trading strategies, backtested and traded live. How each one works and when it went live."
 >
-  <section class="hero wrap">
-    <h1>A crypto trading system that follows rules, not hunches.</h1>
-    <p class="lede">
-      Five strategies, each backtested before it trades real money, all executed automatically.
-      This site explains how they work and how they perform.
-    </p>
-    <Lanes />
+  <section class="hero dark grain">
+    <Veins />
+    <div class="hero-shade" aria-hidden="true"></div>
+
+    <header class="site-header wrap">
+      <a class="wordmark" href="/">Trading B(u)y Signal</a>
+      <span class="tagline">Trading done rationally</span>
+    </header>
+
+    <div class="hero-body wrap">
+      <h1>A crypto trading system that follows rules, not hunches.</h1>
+      <p class="lede">
+        Five strategies, each backtested before it trades real money, all executed automatically.
+        This site explains how they work and how they perform.
+      </p>
+    </div>
+
+    <div class="hero-lanes wrap">
+      <Lanes />
+    </div>
   </section>
 
-  <section class="strategies wrap" aria-labelledby="strategies-title">
-    <h2 id="strategies-title">The strategies</h2>
-    <p class="section-intro">
-      They look for different things: some buy sharp dips and wait for the rebound, others follow
-      trends or rank coins by momentum. Running them side by side smooths out the bad stretches of
-      any single one.
-    </p>
+  <section class="strategies grain" aria-labelledby="strategies-title">
+    <div class="wrap">
+      <h2 id="strategies-title">The strategies</h2>
+      <p class="section-intro">
+        They look for different things: some buy sharp dips and wait for the rebound, others follow
+        trends or rank coins by momentum. Running them side by side smooths out the bad stretches of
+        any single one.
+      </p>
 
-    <ul class="list">
-      {strategies.map((s) => (
-        <li class="item" id={s.id}>
-          <Glyph kind={s.glyph} label={`Diagram of how ${s.name} trades`} />
-          <div class="body">
-            <h3>{s.name}</h3>
-            <p class="meta">
-              <span>{s.timeframe}</span>
-              <span>{s.market}</span>
-              <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
-            </p>
-            <p class="summary">{s.summary}</p>
-          </div>
+      <ul class="list">
+        {strategies.map((s) => (
+          <li class="item" id={s.id} data-replay>
+            <Glyph kind={s.glyph} label={`Diagram of how ${s.name} trades`} />
+            <div class="body">
+              <h3>{s.name}</h3>
+              <p class="meta">
+                <span>{s.timeframe}</span>
+                <span>{s.market}</span>
+                <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
+              </p>
+              <p class="summary">{s.summary}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p class="legend">
+        <span class="mark entry" aria-hidden="true"></span>Entry
+        <span class="mark exit" aria-hidden="true"></span>Exit
+      </p>
+    </div>
+  </section>
+
+  <section class="flow dark grain" aria-labelledby="flow-title">
+    <div class="wrap">
+      <h2 id="flow-title">How a trade happens</h2>
+      <ol class="steps">
+        <li>
+          <h3>A signal fires</h3>
+          <p>When a candle closes, each strategy checks its rules on TradingView and sends a buy or sell signal.</p>
         </li>
-      ))}
-    </ul>
-    <p class="legend">
-      <span class="dot buy" aria-hidden="true"></span>Entry
-      <span class="dot sell" aria-hidden="true"></span>Exit
-    </p>
+        <li>
+          <h3>The bridge checks it</h3>
+          <p>A small server checks position limits, available cash and overlaps with other strategies before acting.</p>
+        </li>
+        <li>
+          <h3>The order goes to OKX</h3>
+          <p>The order is placed on OKX Europe and every fill is logged, so results can be checked trade by trade.</p>
+        </li>
+      </ol>
+    </div>
   </section>
 
-  <section class="flow wrap" aria-labelledby="flow-title">
-    <h2 id="flow-title">How a trade happens</h2>
-    <ol class="steps">
-      <li>
-        <h3>A signal fires</h3>
-        <p>When a candle closes, each strategy checks its rules on TradingView and sends a buy or sell signal.</p>
-      </li>
-      <li>
-        <h3>The bridge checks it</h3>
-        <p>A small server checks position limits, available cash and overlaps with other strategies before acting.</p>
-      </li>
-      <li>
-        <h3>The order goes to OKX</h3>
-        <p>The order is placed on OKX Europe and every fill is logged, so results can be checked trade by trade.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section class="next wrap">
-    <p>
-      Backtests, forward tests and live results for each strategy are being moved to this new site
-      and will appear here soon.
-    </p>
+  <section class="next">
+    <div class="wrap">
+      <p>
+        Backtests, forward tests and live results for each strategy are being moved to this new
+        site and will appear here soon.
+      </p>
+    </div>
   </section>
 </Base>
 
 <style>
+  /* Hero ----------------------------------------------------------------- */
   .hero {
-    padding-block: clamp(3rem, 8vw, 6rem) 0;
+    overflow: hidden;
+    min-height: min(100svh, 62rem);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
   }
-  h1 {
-    font-size: clamp(2.25rem, 5.5vw, 4rem);
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    max-width: 18ch;
+  .hero-shade {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 60% at 22% 38%, rgba(27, 28, 30, 0.82), rgba(27, 28, 30, 0) 70%),
+      linear-gradient(180deg, rgba(27, 28, 30, 0) 45%, rgba(27, 28, 30, 0.88) 64%, rgba(27, 28, 30, 0.96) 100%);
   }
-  .lede {
-    font-size: clamp(1.125rem, 2vw, 1.3125rem);
-    max-width: 38rem;
-    margin: 1.5rem 0 3.5rem;
+  .site-header,
+  .hero-body,
+  .hero-lanes {
+    position: relative;
+    z-index: 1;
+  }
+  .hero-lanes {
+    pointer-events: auto;
   }
 
-  section + section {
-    margin-top: clamp(4rem, 9vw, 7rem);
+  .site-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.75rem;
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .tagline {
+    color: var(--on-dark-muted);
+    font-size: 0.9375rem;
+  }
+
+  .hero-body {
+    padding-block: clamp(3rem, 10vh, 7rem) clamp(2.5rem, 6vh, 4rem);
+    flex: 1;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.6rem, 6.4vw, 5.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    max-width: 14ch;
+    color: #f2f1ee;
+  }
+  .lede {
+    font-size: clamp(1.0625rem, 1.8vw, 1.25rem);
+    max-width: 34rem;
+    margin: 1.75rem 0 0;
+    color: var(--on-dark-muted);
+  }
+
+  /* Strategies ----------------------------------------------------------- */
+  .strategies {
+    padding-block: clamp(4.5rem, 10vw, 8rem);
   }
   h2 {
-    font-size: clamp(1.5rem, 2.6vw, 2rem);
-    font-weight: 650;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 3rem);
     letter-spacing: -0.015em;
   }
   .section-intro {
     max-width: 38rem;
-    margin: 0.75rem 0 2rem;
+    margin: 1rem 0 2.75rem;
+    color: var(--ink-soft);
   }
 
   .list {
@@ -113,21 +187,25 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .item {
     display: flex;
-    gap: 2rem;
+    gap: 2.25rem;
     align-items: flex-start;
-    padding-block: 1.75rem;
+    padding: 2rem 1rem;
+    margin-inline: -1rem;
     border-bottom: 1px solid var(--rule);
     scroll-margin-top: 1.5rem;
+    transition: background-color 250ms;
   }
+  .item:hover,
   .item:target {
-    background: var(--surface);
+    background: rgba(26, 27, 29, 0.045);
   }
   .body {
     max-width: 40rem;
   }
   h3 {
     font-size: 1.25rem;
-    font-weight: 650;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
   .meta {
     display: flex;
@@ -136,63 +214,91 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
     margin: 0.375rem 0 0.75rem;
     font-size: 0.875rem;
     color: var(--muted);
+  }
+  .meta time {
     font-variant-numeric: tabular-nums;
   }
   .summary {
     margin: 0;
+    color: var(--ink-soft);
   }
   .legend {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 1rem 0 0;
+    margin: 1.25rem 0 0;
     font-size: 0.8125rem;
     color: var(--muted);
   }
-  .dot {
+  .mark {
     width: 9px;
     height: 9px;
     border-radius: 50%;
     display: inline-block;
   }
-  .dot.sell {
+  .mark.entry {
+    background: var(--gold);
+  }
+  .mark.exit {
     margin-left: 0.75rem;
-  }
-  .dot.buy {
-    background: var(--buy);
-  }
-  .dot.sell {
-    background: var(--sell);
+    border: 1.4px solid var(--ink);
   }
 
+  /* Flow ----------------------------------------------------------------- */
+  .flow {
+    padding-block: clamp(4.5rem, 9vw, 7rem);
+  }
+  .flow h2 {
+    color: #f2f1ee;
+  }
   .steps {
     list-style: none;
     counter-reset: step;
-    margin: 2rem 0 0;
+    margin: 2.5rem 0 0;
     padding: 0;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
+    gap: 2.5rem;
   }
   .steps li {
     counter-increment: step;
-    border-top: 3px solid var(--ink);
-    padding-top: 1rem;
+    position: relative;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+  }
+  .steps li::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 2.5rem;
+    height: 1px;
+    background: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(230, 201, 136, 0.6);
+  }
+  .steps h3 {
+    color: #f2f1ee;
   }
   .steps h3::before {
     content: counter(step) '. ';
-    color: var(--muted);
+    color: var(--gold);
   }
   .steps p {
     margin: 0.5rem 0 0;
+    color: var(--on-dark-muted);
   }
 
+  /* Next ----------------------------------------------------------------- */
+  .next {
+    padding-block: clamp(3.5rem, 7vw, 5rem);
+  }
   .next p {
     max-width: 38rem;
     margin: 0;
-    padding: 1.25rem 1.5rem;
-    background: var(--surface);
-    border-left: 3px solid var(--buy);
+    font-family: var(--serif);
+    font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+    line-height: 1.35;
+    color: var(--ink-soft);
   }
 
   @media (max-width: 48rem) {
@@ -201,6 +307,9 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
     }
   }
   @media (max-width: 40rem) {
+    .tagline {
+      display: none;
+    }
     .item {
       flex-direction: column;
       gap: 1rem;

@@ -1,6 +1,7 @@
 ---
-// Small line diagram of how a strategy trades.
-// Teal dots mark entries, red dots mark exits; the grey line is price.
+// Small line diagram of how a strategy trades. The price line draws itself
+// when it scrolls into view (and again on hover of its row); gold dots mark
+// entries, hollow rings mark exits.
 import type { Glyph } from '../data/strategies';
 
 interface Props {
@@ -14,94 +15,154 @@ const { kind, label } = Astro.props;
 <svg class="glyph" viewBox="0 0 120 56" role="img" aria-label={label}>
   {kind === 'atr' && (
     <>
-      <path class="band" d="M4 38 L116 38" />
-      <path class="price" d="M4 24 L22 22 L36 26 L46 47 L56 30 L70 22 L86 20 L100 23 L116 21" />
-      <circle class="buy" cx="46" cy="47" r="3.6" />
-      <circle class="sell" cx="70" cy="22" r="3.6" />
+      <path class="guide" d="M4 38 L116 38" />
+      <path class="price" pathLength="1" d="M4 24 L22 22 L36 26 L46 47 L56 30 L70 22 L86 20 L100 23 L116 21" />
+      <circle class="buy" style="--d:0.45s" cx="46" cy="47" r="3.4" />
+      <circle class="sell" style="--d:0.65s" cx="70" cy="22" r="3.4" />
     </>
   )}
   {kind === 'ichimoku' && (
     <>
       <path class="cloud" d="M4 44 L30 40 L60 34 L90 26 L116 18 L116 30 L90 36 L60 44 L30 48 L4 50 Z" />
-      <path class="price" d="M4 46 L18 42 L30 36 L44 30 L58 26 L74 20 L90 14 L104 10 L116 8" />
-      <circle class="buy" cx="30" cy="36" r="3.6" />
+      <path class="price" pathLength="1" d="M4 46 L18 42 L30 36 L44 30 L58 26 L74 20 L90 14 L104 10 L116 8" />
+      <circle class="buy" style="--d:0.3s" cx="30" cy="36" r="3.4" />
     </>
   )}
   {kind === 'momentum' && (
     <>
-      <rect class="long" x="10" y="6" width="12" height="40" rx="1.5" />
-      <rect class="long" x="28" y="14" width="12" height="32" rx="1.5" />
-      <rect class="flat" x="46" y="26" width="12" height="20" rx="1.5" />
-      <rect class="flat" x="64" y="32" width="12" height="14" rx="1.5" />
-      <rect class="short" x="82" y="38" width="12" height="8" rx="1.5" />
-      <rect class="short" x="100" y="42" width="12" height="4" rx="1.5" />
-      <path class="base" d="M4 46 L116 46" />
+      <path class="guide solid" d="M4 46 L116 46" />
+      <rect class="bar long" style="--d:0.05s" x="10" y="6" width="12" height="40" />
+      <rect class="bar long" style="--d:0.12s" x="28" y="14" width="12" height="32" />
+      <rect class="bar flat" style="--d:0.19s" x="46" y="26" width="12" height="20" />
+      <rect class="bar flat" style="--d:0.26s" x="64" y="32" width="12" height="14" />
+      <rect class="bar short" style="--d:0.33s" x="82" y="38" width="12" height="8" />
+      <rect class="bar short" style="--d:0.4s" x="100" y="42" width="12" height="4" />
     </>
   )}
   {kind === 'rsi' && (
     <>
-      <path class="band" d="M4 40 L116 40" />
-      <path class="price" d="M4 16 L18 22 L30 36 L40 43 L50 46 L60 48 L72 34 L86 22 L100 18 L116 16" />
-      <circle class="buy" cx="40" cy="43" r="3.2" />
-      <circle class="buy" cx="50" cy="46" r="3.2" />
-      <circle class="buy" cx="60" cy="48" r="3.2" />
-      <circle class="sell" cx="86" cy="22" r="3.6" />
+      <path class="guide" d="M4 40 L116 40" />
+      <path class="price" pathLength="1" d="M4 16 L18 22 L30 36 L40 43 L50 46 L60 48 L72 34 L86 22 L100 18 L116 16" />
+      <circle class="buy" style="--d:0.32s" cx="40" cy="43" r="3" />
+      <circle class="buy" style="--d:0.4s" cx="50" cy="46" r="3" />
+      <circle class="buy" style="--d:0.48s" cx="60" cy="48" r="3" />
+      <circle class="sell" style="--d:0.7s" cx="86" cy="22" r="3.4" />
     </>
   )}
   {kind === 'ladder' && (
     <>
-      <path class="price" d="M4 10 L18 10 L18 18 L30 18 L30 26 L42 26 L42 34 L54 34 L54 42 L66 42 L80 30 L94 20 L116 14" />
-      <circle class="buy" cx="18" cy="18" r="3" />
-      <circle class="buy" cx="30" cy="26" r="3" />
-      <circle class="buy" cx="42" cy="34" r="3" />
-      <circle class="buy" cx="54" cy="42" r="3" />
-      <circle class="buy" cx="66" cy="42" r="3" />
-      <circle class="sell" cx="94" cy="20" r="3.6" />
+      <path class="price" pathLength="1" d="M4 10 L18 10 L18 18 L30 18 L30 26 L42 26 L42 34 L54 34 L54 42 L66 42 L80 30 L94 20 L116 14" />
+      <circle class="buy" style="--d:0.14s" cx="18" cy="18" r="2.8" />
+      <circle class="buy" style="--d:0.24s" cx="30" cy="26" r="2.8" />
+      <circle class="buy" style="--d:0.34s" cx="42" cy="34" r="2.8" />
+      <circle class="buy" style="--d:0.44s" cx="54" cy="42" r="2.8" />
+      <circle class="buy" style="--d:0.54s" cx="66" cy="42" r="2.8" />
+      <circle class="sell" style="--d:0.78s" cx="94" cy="20" r="3.4" />
     </>
   )}
 </svg>
 
 <style>
   .glyph {
-    width: 120px;
-    height: 56px;
+    width: 132px;
+    height: 62px;
     flex: none;
     overflow: visible;
   }
   .price {
     fill: none;
     stroke: var(--ink);
-    stroke-width: 2;
+    stroke-width: 1.6;
     stroke-linecap: round;
     stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
   }
-  .band,
-  .base {
+  .guide {
     fill: none;
-    stroke: var(--rule);
-    stroke-width: 1.5;
-    stroke-dasharray: 3 3;
+    stroke: var(--ink-soft);
+    stroke-opacity: 0.45;
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
   }
-  .base {
+  .guide.solid {
     stroke-dasharray: none;
   }
   .cloud {
-    fill: var(--buy);
-    opacity: 0.16;
+    fill: var(--ink);
+    opacity: 0.1;
   }
   .buy {
-    fill: var(--buy);
+    fill: var(--gold);
   }
   .sell {
-    fill: var(--sell);
+    fill: var(--fog);
+    stroke: var(--ink);
+    stroke-width: 1.4;
   }
-  .long {
-    fill: var(--buy);
+  .bar.long {
+    fill: var(--gold);
   }
-  .short {
-    fill: var(--sell);
+  .bar.flat {
+    fill: var(--fog-2);
   }
-  .flat {
-    fill: var(--rule);
+  .bar.short {
+    fill: var(--ink);
+  }
+
+  .buy,
+  .sell,
+  .bar {
+    transform-box: fill-box;
+    opacity: 0;
+  }
+  .buy,
+  .sell {
+    transform-origin: center;
+    transform: scale(0.2);
+  }
+  .bar {
+    transform-origin: bottom;
+    transform: scaleY(0);
+  }
+
+  .glyph.drawn .price {
+    transition: stroke-dashoffset 900ms cubic-bezier(0.45, 0.05, 0.25, 1);
+    stroke-dashoffset: 0;
+  }
+  .glyph.drawn .buy,
+  .glyph.drawn .sell,
+  .glyph.drawn .bar {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 250ms ease-out var(--d, 0s),
+      transform 350ms cubic-bezier(0.3, 1.5, 0.6, 1) var(--d, 0s);
   }
 </style>
+
+<script>
+  // Draw each diagram once it scrolls into view; replay when its row is hovered.
+  const glyphs = document.querySelectorAll<SVGSVGElement>('svg.glyph');
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('drawn');
+          io.unobserve(e.target);
+        }
+      }
+    },
+    { threshold: 0.6 },
+  );
+  glyphs.forEach((g) => {
+    io.observe(g);
+    const row = g.closest('[data-replay]');
+    row?.addEventListener('pointerenter', () => {
+      if (!g.classList.contains('drawn')) return;
+      g.classList.remove('drawn');
+      void g.getBoundingClientRect(); // restart the transition
+      g.classList.add('drawn');
+    });
+  });
+</script>

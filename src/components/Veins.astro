@@ -1,0 +1,259 @@
+---
+// Animated background for the hero: gold price paths that grow across dark
+// stone like kintsugi cracks, branch now and then, and slowly fade to make
+// room for new ones. Near the pointer they brighten and a fine crosshair
+// follows it. With reduced motion, a still set is drawn once.
+---
+
+<canvas class="veins" aria-hidden="true"></canvas>
+
+<style>
+  .veins {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+  }
+</style>
+
+<script>
+  type Vein = {
+    pts: { x: number; y: number }[];
+    shown: number; // points drawn so far
+    speed: number; // points added per frame
+    width: number;
+    born: number;
+    life: number; // ms until fully faded, after it finished growing
+    doneAt: number | null;
+    depth: number; // 0 = trunk, 1 = branch
+  };
+
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas.veins');
+  const ctx = canvas?.getContext('2d');
+
+  if (canvas && ctx) {
+    const host = canvas.parentElement as HTMLElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let W = 0;
+    let H = 0;
+    let dpr = 1;
+    let veins: Vein[] = [];
+    let pointer: { x: number; y: number } | null = null;
+    let running = false;
+    let raf = 0;
+    let lastSpawn = 0;
+
+    // Small seeded random so the still (reduced-motion) version is stable.
+    let seed = 7;
+    const rand = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+
+    const resize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = host.clientWidth;
+      H = host.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    // A price-like random walk with volatility clusters.
+    const makePath = (x0: number, y0: number, len: number, step: number) => {
+      const pts = [{ x: x0, y: y0 }];
+      let vol = 0.6 + rand() * 1.4;
+      let drift = (rand() - 0.5) * 0.25;
+      let x = x0;
+      let y = y0;
+      for (let i = 0; i < len; i++) {
+        if (rand() < 0.04) vol = 0.5 + rand() * 2.6; // regime change
+        if (rand() < 0.02) drift = (rand() - 0.5) * 0.5;
+        x += step;
+        y += drift * step + (rand() - 0.5) * vol * step * 1.1;
+        y = Math.max(H * 0.04, Math.min(H * 0.96, y));
+        pts.push({ x, y });
+        if (x > W + 20) break;
+      }
+      return pts;
+    };
+
+    const spawn = (now: number, at?: { x: number; y: number; depth: number }) => {
+      const depth = at ? at.depth : 0;
+      const step = depth ? 5 : 7;
+      const x0 = at ? at.x : -10;
+      const y0 = at ? at.y : H * (0.15 + rand() * 0.75);
+      const len = depth ? 12 + Math.floor(rand() * 40) : 1000;
+      veins.push({
+        pts: makePath(x0, y0, len, step),
+        shown: 1,
+        speed: depth ? 0.5 : 0.55 + rand() * 0.45,
+        width: depth ? 0.6 + rand() * 0.5 : 0.9 + rand() * 0.9,
+        born: now,
+        life: 9000 + rand() * 8000,
+        doneAt: null,
+        depth,
+      });
+    };
+
+    const alphaOf = (v: Vein, now: number) => {
+      const fadeIn = Math.min(1, (now - v.born) / 600);
+      if (v.doneAt === null) return fadeIn;
+      return Math.max(0, 1 - (now - v.doneAt) / v.life) * fadeIn;
+    };
+
+    const draw = (now: number) => {
+      ctx.clearRect(0, 0, W, H);
+
+      for (const v of veins) {
+        const a = alphaOf(v, now);
+        if (a <= 0) continue;
+        const n = Math.floor(v.shown);
+        if (n < 2) continue;
+
+        // Brighten near the pointer.
+        let boost = 0;
+        if (pointer) {
+          let best = Infinity;
+          for (let i = 0; i < n; i += 4) {
+            const p = v.pts[i];
+            const d = (p.x - pointer.x) ** 2 + (p.y - pointer.y) ** 2;
+            if (d < best) best = d;
+          }
+          boost = Math.max(0, 1 - Math.sqrt(best) / 180);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(v.pts[0].x, v.pts[0].y);
+        for (let i = 1; i < n; i++) ctx.lineTo(v.pts[i].x, v.pts[i].y);
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // Soft glow, then the crisp vein on top.
+        ctx.strokeStyle = `rgba(230, 201, 136, ${0.12 * a + 0.2 * boost * a})`;
+        ctx.lineWidth = v.width + 5;
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(${boost > 0.3 ? '230, 201, 136' : '195, 160, 90'}, ${(0.55 + 0.45 * boost) * a})`;
+        ctx.lineWidth = v.width;
+        ctx.stroke();
+
+        // Bright tip while growing.
+        if (v.doneAt === null) {
+          const t = v.pts[n - 1];
+          ctx.fillStyle = `rgba(246, 226, 176, ${0.9 * a})`;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, v.depth ? 1.2 : 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (pointer) {
+        ctx.strokeStyle = 'rgba(231, 231, 229, 0.14)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pointer.x + 0.5, 0);
+        ctx.lineTo(pointer.x + 0.5, H);
+        ctx.moveTo(0, pointer.y + 0.5);
+        ctx.lineTo(W, pointer.y + 0.5);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    };
+
+    const tick = (now: number) => {
+      // Grow, branch, retire.
+      for (const v of [...veins]) {
+        if (v.doneAt !== null) continue;
+        const before = Math.floor(v.shown);
+        v.shown = Math.min(v.pts.length, v.shown + v.speed);
+        const after = Math.floor(v.shown);
+        if (v.depth === 0 && after > before && rand() < 0.02 * (after - before)) {
+          const p = v.pts[after - 1];
+          spawn(now, { x: p.x, y: p.y, depth: 1 });
+        }
+        if (v.shown >= v.pts.length) v.doneAt = now;
+      }
+      veins = veins.filter((v) => alphaOf(v, now) > 0 || v.doneAt === null);
+
+      const trunks = veins.filter((v) => v.depth === 0).length;
+      if (trunks < 5 && now - lastSpawn > 2600) {
+        spawn(now);
+        lastSpawn = now;
+      }
+
+      draw(now);
+      raf = running ? requestAnimationFrame(tick) : 0;
+    };
+
+    const start = () => {
+      if (running || reduce) return;
+      running = true;
+      raf = requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+
+    const drawStill = () => {
+      veins = [];
+      seed = 7;
+      const now = performance.now();
+      for (let i = 0; i < 6; i++) spawn(now);
+      for (const v of [...veins]) {
+        for (let i = 4; i < v.pts.length; i += 50) {
+          if (rand() < 0.5) spawn(now, { x: v.pts[i].x, y: v.pts[i].y, depth: 1 });
+        }
+      }
+      for (const v of veins) {
+        v.shown = v.pts.length;
+        v.born = now - 1000;
+        v.doneAt = null;
+      }
+      draw(now + 1000);
+    };
+
+    resize();
+
+    if (reduce) {
+      drawStill();
+    } else {
+      // Begin with a few veins already part-grown so the hero is never empty.
+      const now = performance.now();
+      for (let i = 0; i < 4; i++) {
+        spawn(now);
+        const v = veins[veins.length - 1];
+        v.shown = Math.floor(v.pts.length * (0.25 + rand() * 0.6));
+        v.born = now - 1000;
+      }
+      start();
+    }
+
+    new ResizeObserver(() => {
+      resize();
+      if (reduce) drawStill();
+    }).observe(host);
+
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !document.hidden) start();
+      else stop();
+    }).observe(host);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else start();
+    });
+
+    host.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const r = host.getBoundingClientRect();
+      pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
+    });
+    host.addEventListener('pointerleave', () => {
+      pointer = null;
+    });
+  }
+</script>
