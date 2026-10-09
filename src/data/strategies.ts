@@ -69,6 +69,7 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: 'None' },
         { label: 'Positions', value: 'One per asset' },
+        { label: 'Trades per year', value: 'About 1 to 5' },
         { label: 'Live since', value: '1 August 2025' },
       ],
       idea: [
@@ -139,7 +140,7 @@ const all: Strategy[] = [
         { label: 'Markets', value: 'The five largest coins, perpetual futures' },
         { label: 'Rebalancing', value: 'Weekly' },
         { label: 'Direction', value: 'Long and short' },
-        { label: 'Leverage', value: 'Moderate, isolated margin' },
+        { label: 'Leverage', value: '1.5x, isolated margin' },
         { label: 'Positions', value: 'Two or three at a time' },
         { label: 'Live since', value: '31 January 2026' },
       ],
@@ -175,13 +176,13 @@ const all: Strategy[] = [
           },
           {
             title: 'No stop-loss',
-            text: 'Risk is controlled by holding longs and shorts together, by the weekly reset and by moderate leverage, not by stops. Each position uses isolated margin, so one trade can never draw on the rest of the account.',
+            text: 'Risk is controlled by holding longs and shorts together, by the weekly reset and by modest leverage of 1.5x, not by stops. Each position uses isolated margin, so one trade can never draw on the rest of the account.',
           },
         ],
       },
       risk: [
         'Long and short at the same time. In a broad sell-off the short offsets part of the losses on the longs, and in a downtrend the book is balanced one against one.',
-        'Moderate leverage on perpetual futures, with isolated margin for each position.',
+        'Leverage of 1.5x on perpetual futures, with isolated margin for each position.',
         'Equal size for every position, reset weekly, so no single coin dominates.',
         'Only the largest, most liquid coins, which keeps trading costs and slippage low.',
       ],
