@@ -140,7 +140,7 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: 'None' },
         { label: 'Positions', value: 'One per asset' },
-        { label: 'Trades per year', value: 'About 1 to 5' },
+        { label: 'Trades per year', value: 'About 1 to 5 per coin' },
         { label: 'Live since', value: '1 August 2025' },
       ],
       idea: [
@@ -285,7 +285,7 @@ const all: Strategy[] = [
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: 'None' },
-        { label: 'Positions', value: 'Up to four coins, three tranches each' },
+        { label: 'Typical holding', value: 'A few days' },
         { label: 'Live since', value: '25 July 2026' },
       ],
       idea: [
@@ -337,7 +337,7 @@ const all: Strategy[] = [
       risk: [
         'No leverage. Coins are bought on the spot market, so a position can never lose more than the capital in it.',
         'Each coin has a fixed slot, and each slot is filled in equal tranches, so a single dip never commits the whole slot at the first price.',
-        'At most four coins at a time, which limits how much is invested during a market-wide sell-off.',
+        'Only a limited number of coins can be held at once, which caps how much is invested during a market-wide sell-off.',
         'No stop-loss. A dip that turns into a lasting decline is held until it bounces, which can take a while.',
       ],
       goodIn: [
@@ -364,10 +364,10 @@ const all: Strategy[] = [
       tagline:
         'Starts buying when a market is oversold, adds a leg on every red day, and sells the whole ladder as soon as a small profit is in.',
       facts: [
-        { label: 'Markets', value: '20 large coins, and the Nasdaq-100 (QQQ)' },
+        { label: 'Markets', value: '20 large coins (spot) and the Nasdaq-100 (QQQ, perpetual future)' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: 'None on coins, 3x on QQQ' },
+        { label: 'Leverage', value: 'None on coins, leveraged on QQQ' },
         { label: 'Positions', value: 'Up to five equal legs each' },
         { label: 'Live since', value: '18 September 2026' },
       ],
@@ -422,7 +422,7 @@ const all: Strategy[] = [
         ],
       },
       risk: [
-        'Coins are traded without leverage. QQQ uses 3x on a perpetual future, which the index’s lower volatility allows; a deep fall in the Nasdaq still hits that slot harder.',
+        'Coins are bought on the spot market without leverage. QQQ is traded as a perpetual future with leverage, which the index’s lower volatility allows; a deep fall in the Nasdaq still hits that position harder.',
         'Each ladder has a fixed budget split into five equal legs, so the position never grows beyond its slot.',
         'The trend check keeps coin ladders out of falling markets, so most sell-offs that start in a bear market are skipped.',
         'No stop-loss. A sell-off that keeps going after all five legs are in is held until it bounces.',
