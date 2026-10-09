@@ -72,7 +72,7 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
       <ol class="steps">
         <li>
           <h3>A signal fires</h3>
-          <p>When a candle closes, each strategy checks its rules on TradingView and sends a buy or sell signal.</p>
+          <p>Each strategy watches the market on TradingView and sends a buy or sell signal when its rules are met, at the close of a candle or as soon as price hits a level during it.</p>
         </li>
         <li>
           <h3>The bridge checks it</h3>
