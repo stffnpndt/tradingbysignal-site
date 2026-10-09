@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Glyph from '../../components/Glyph.astro';
 import IchimokuDiagram from '../../components/diagrams/IchimokuDiagram.astro';
+import MomentumDiagram from '../../components/diagrams/MomentumDiagram.astro';
 import { strategies, type Strategy, type StrategyDetails } from '../../data/strategies';
 
 export function getStaticPaths() {
@@ -19,6 +20,7 @@ const d = s.details as StrategyDetails;
 
 const diagrams: Record<string, any> = {
   'tf-ichimoku': IchimokuDiagram,
+  csm: MomentumDiagram,
 };
 const Diagram = diagrams[s.id];
 
@@ -60,38 +62,50 @@ const others = strategies.filter((x) => x.id !== s.id);
     </div>
   </section>
 
-  <section class="block checks-block dark grain" aria-labelledby="checks-title">
+  <section class="block checks-block dark grain" aria-labelledby="entry-title">
     <div class="wrap">
-      <h2 id="checks-title">When it buys</h2>
-      <p class="lead">{d.checksIntro}</p>
-      <ul class="checks" data-checks>
-        {d.checks.map((c, i) => (
-          <li style={`--i:${i}`}>
-            <span class="lamp" aria-hidden="true"></span>
-            <h3>{c.title}</h3>
-            <p>{c.text}</p>
-          </li>
-        ))}
-      </ul>
-      <p class="verdict" style={`--i:${d.checks.length}`}>
-        <span class="lamp" aria-hidden="true"></span>All {d.checks.length === 6 ? 'six' : d.checks.length} agree: the trade opens.
+      <h2 id="entry-title">{d.entry.title}</h2>
+      <p class="lead">{d.entry.intro}</p>
+      {d.entry.kind === 'steps' ? (
+        <ol class="checks steps" data-checks>
+          {d.entry.items.map((c, i) => (
+            <li style={`--i:${i}`}>
+              <span class="lamp" aria-hidden="true"></span>
+              <h3>{c.title}</h3>
+              <p>{c.text}</p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ul class="checks" data-checks>
+          {d.entry.items.map((c, i) => (
+            <li style={`--i:${i}`}>
+              <span class="lamp" aria-hidden="true"></span>
+              <h3>{c.title}</h3>
+              <p>{c.text}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p class="verdict" style={`--i:${d.entry.items.length}`}>
+        <span class="lamp" aria-hidden="true"></span>{d.entry.verdict}
       </p>
-      {d.checksNote && <p class="note">{d.checksNote}</p>}
+      {d.entry.note && <p class="note">{d.entry.note}</p>}
     </div>
   </section>
 
   <section class="block grain">
     <div class="wrap narrow">
-      <h2>When it sells</h2>
+      <h2>{d.exit.title}</h2>
       <div class="exits">
-        {d.exits.map((e) => (
+        {d.exit.items.map((e) => (
           <div>
             <h3>{e.title}</h3>
             <p>{e.text}</p>
           </div>
         ))}
       </div>
-      {d.exitsNote && <p class="note">{d.exitsNote}</p>}
+      {d.exit.note && <p class="note">{d.exit.note}</p>}
 
       <h2 class="spaced">Risk</h2>
       <ul class="plain">
@@ -271,6 +285,17 @@ const others = strategies.filter((x) => x.id !== s.id);
   .checks h3 {
     color: #f2f1ee;
   }
+  .steps {
+    counter-reset: step;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .steps li {
+    counter-increment: step;
+  }
+  .steps h3::before {
+    content: counter(step) '. ';
+    color: var(--gold);
+  }
   .checks p {
     margin: 0;
     font-size: 0.9375rem;
@@ -363,7 +388,8 @@ const others = strategies.filter((x) => x.id !== s.id);
   }
 
   @media (max-width: 60rem) {
-    .checks {
+    .checks,
+    .steps {
       grid-template-columns: 1fr 1fr;
     }
     .others {
@@ -372,6 +398,7 @@ const others = strategies.filter((x) => x.id !== s.id);
   }
   @media (max-width: 40rem) {
     .checks,
+    .steps,
     .cols,
     .others {
       grid-template-columns: 1fr;
