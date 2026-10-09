@@ -13,13 +13,13 @@ export interface Strategy {
   glyph: Glyph;
 }
 
-export const strategies: Strategy[] = [
+const all: Strategy[] = [
   {
     id: 'mr-atr',
     name: 'ATR Mean Reversion',
     timeframe: 'Daily',
     market: 'Crypto spot, broad universe',
-    liveSince: '2025-02-24',
+    liveSince: '2026-02-24',
     summary:
       'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually within a few days. Up to five positions at a time.',
     glyph: 'atr',
@@ -65,3 +65,6 @@ export const strategies: Strategy[] = [
     glyph: 'ladder',
   },
 ];
+
+// Always listed in the order the strategies went live.
+export const strategies: Strategy[] = [...all].sort((a, b) => a.liveSince.localeCompare(b.liveSince));

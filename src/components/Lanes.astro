@@ -2,15 +2,17 @@
 // Timeline: one lane per strategy, drawn from the day it went live to today.
 import { strategies } from '../data/strategies';
 
-const start = new Date('2025-01-01T00:00:00Z');
+const start = new Date('2025-07-01T00:00:00Z');
 const today = new Date();
 const span = today.getTime() - start.getTime();
 const pct = (d: Date) => ((d.getTime() - start.getTime()) / span) * 100;
 
-const years: { label: string; x: number }[] = [];
+const years: { label: string; x: number }[] = [
+  { label: new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(start), x: 0 },
+];
 for (let y = start.getUTCFullYear(); y <= today.getUTCFullYear(); y++) {
   const x = pct(new Date(Date.UTC(y, 0, 1)));
-  if (x >= 0 && x <= 92) years.push({ label: String(y), x });
+  if (x > 8 && x <= 92) years.push({ label: String(y), x });
 }
 
 const fmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
