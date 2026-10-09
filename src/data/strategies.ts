@@ -277,6 +277,79 @@ const all: Strategy[] = [
     summary:
       'Waits for a deeply oversold short-term RSI and scales in over up to three tranches as the dip extends, then exits once price recovers.',
     glyph: 'rsi',
+    details: {
+      tagline:
+        'Buys short, sharp dips inside an uptrend, adds as the dip stretches, and sells everything at once when the bounce comes.',
+      facts: [
+        { label: 'Markets', value: 'Liquid coins, spot' },
+        { label: 'Chart', value: 'Daily candles' },
+        { label: 'Direction', value: 'Long only' },
+        { label: 'Leverage', value: 'None' },
+        { label: 'Positions', value: 'Up to four coins, three tranches each' },
+        { label: 'Live since', value: '25 July 2026' },
+      ],
+      idea: [
+        'In a healthy uptrend, sell-offs rarely last long. A few red days in a row push a coin far below where it traded a week earlier, short-term traders give up, and buyers who missed the trend step back in. The very short-term RSI measures exactly this kind of stretch: it drops to extreme lows after only a handful of falling days.',
+        'The strategy does not buy the first sign of weakness. Most small dips end before they become interesting, so the first oversold days are only counted. Only if the selling continues does it start to buy, in equal tranches, so the deeper the dip goes, the lower the average price. When the bounce comes, the whole position is sold in one go.',
+      ],
+      entry: {
+        title: 'How it trades',
+        intro: 'Each dip runs through the same sequence, decided at the daily close:',
+        kind: 'steps',
+        verdict: 'The next dip starts a new count.',
+        items: [
+          {
+            title: 'Healthy trend',
+            text: 'A new sequence may only begin while the coin trades above its medium-term average.',
+          },
+          {
+            title: 'Oversold',
+            text: 'The short-term RSI falls deep into oversold territory. The count starts.',
+          },
+          {
+            title: 'Let it run',
+            text: 'The first oversold days are only counted, not bought. Dips that end quickly are skipped.',
+          },
+          {
+            title: 'Scale in',
+            text: 'From then on, every further oversold day adds one equal tranche, up to three in total.',
+          },
+          {
+            title: 'Sell the bounce',
+            text: 'Once the short-term RSI is back above neutral, the whole position is sold at the close. If that happens before the first tranche, the sequence ends without a trade.',
+          },
+        ],
+        note: 'The trend check only decides whether a sequence may start. Once the count runs, further tranches are added even if price slips below the average.',
+      },
+      exit: {
+        title: 'When it sells',
+        items: [
+          {
+            title: 'Recovery',
+            text: 'All tranches are sold together at the first daily close with the short-term RSI above neutral. There is no profit target beyond that; the strategy takes the bounce and steps aside.',
+          },
+          {
+            title: 'No stop-loss',
+            text: 'There is no stop. Risk is limited by the trend check at the start, by splitting each position into tranches, and by trading spot without leverage.',
+          },
+        ],
+      },
+      risk: [
+        'No leverage. Coins are bought on the spot market, so a position can never lose more than the capital in it.',
+        'Each coin has a fixed slot, and each slot is filled in equal tranches, so a single dip never commits the whole slot at the first price.',
+        'At most four coins at a time, which limits how much is invested during a market-wide sell-off.',
+        'No stop-loss. A dip that turns into a lasting decline is held until it bounces, which can take a while.',
+      ],
+      goodIn: [
+        'Uptrends with short, sharp pullbacks that are bought back within days.',
+        'Markets where sell-offs overshoot and snap back.',
+      ],
+      badIn: [
+        'A trend that breaks: the dip keeps going after all tranches are in, and the position sits at a loss until a bounce comes.',
+        'Long bear markets, where few sequences may start at all.',
+        'Slow, grinding declines without the sharp drops the RSI reacts to.',
+      ],
+    },
   },
   {
     id: 'rsi-red-legs',

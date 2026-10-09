@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import Glyph from '../../components/Glyph.astro';
 import IchimokuDiagram from '../../components/diagrams/IchimokuDiagram.astro';
 import AtrDiagram from '../../components/diagrams/AtrDiagram.astro';
+import RsiDiagram from '../../components/diagrams/RsiDiagram.astro';
 import MomentumDiagram from '../../components/diagrams/MomentumDiagram.astro';
 import { strategies, type Strategy, type StrategyDetails } from '../../data/strategies';
 
@@ -23,6 +24,7 @@ const diagrams: Record<string, any> = {
   'tf-ichimoku': IchimokuDiagram,
   csm: MomentumDiagram,
   'mr-atr': AtrDiagram,
+  'mr-rsi': RsiDiagram,
 };
 const Diagram = diagrams[s.id];
 
