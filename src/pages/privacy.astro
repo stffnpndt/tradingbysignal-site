@@ -1,0 +1,111 @@
+---
+import TextPage from '../layouts/TextPage.astro';
+import { operator as o } from '../data/operator';
+---
+
+<TextPage
+  title="Privacy policy"
+  description="How tradingbysignal.com handles personal data."
+  updated="October 2026"
+>
+  <h2>In short</h2>
+  <ul>
+    <li>This website sets no cookies and uses no analytics, tracking or advertising tools.</li>
+    <li>There are no contact forms, comments, user accounts or embedded third-party content.</li>
+    <li>Fonts are served from this website itself; no data is sent to Google or other font providers.</li>
+    <li>
+      The only personal data processed when you visit is the technical data your browser sends
+      to the hosting provider, Cloudflare, so that the website can be delivered and protected.
+    </li>
+  </ul>
+
+  <h2>Controller</h2>
+  <p>The controller responsible for data processing on this website (Art.&nbsp;4 (7) GDPR) is:</p>
+  <address>
+    {o.name}<br />
+    {o.street}<br />
+    {o.city}<br />
+    {o.country}<br />
+    Email: <a href={`mailto:${o.email}`}>{o.email}</a><br />
+    Phone: <a href={o.phoneHref}>{o.phone}</a>
+  </address>
+
+  <h2>Hosting and delivery</h2>
+  <p>
+    This website is hosted and delivered by Cloudflare, Inc., 101 Townsend Street, San Francisco,
+    CA 94107, USA (“Cloudflare”). When you open a page, your browser connects to Cloudflare’s
+    servers. In doing so, Cloudflare processes the following data:
+  </p>
+  <ul>
+    <li>your IP address,</li>
+    <li>date and time of the request,</li>
+    <li>the page or file requested,</li>
+    <li>the website you came from (referrer), if your browser sends it,</li>
+    <li>browser type and version, operating system and language settings.</li>
+  </ul>
+  <p>
+    This data is needed to deliver the website to your device, to keep it stable and to protect
+    it against attacks and misuse (for example denial-of-service attacks). The legal basis is
+    Art.&nbsp;6 (1) (f) GDPR; my legitimate interest is a secure, reliable and fast website. I do not
+    combine this data with other sources and do not use it to identify visitors.
+  </p>
+  <p>
+    Cloudflare processes this data on my behalf under a data processing agreement pursuant to
+    Art.&nbsp;28 GDPR. Cloudflare may process data in the USA. Cloudflare, Inc. is certified under the
+    EU–U.S. Data Privacy Framework, for which the European Commission has issued an adequacy
+    decision (Art.&nbsp;45 GDPR). In addition, Cloudflare’s data processing agreement includes the EU
+    Standard Contractual Clauses (Art.&nbsp;46 (2) (c) GDPR). Cloudflare deletes or anonymises this
+    data in line with its own retention periods. More information:
+    <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare privacy policy</a>.
+  </p>
+
+  <h2>Encryption</h2>
+  <p>
+    All pages are delivered over an encrypted connection (TLS). You can recognise it by
+    “https://” and the lock symbol in your browser’s address bar.
+  </p>
+
+  <h2>Contact by email or phone</h2>
+  <p>
+    If you contact me by email or phone, I process the details you provide (for example your name,
+    email address and message) to deal with your enquiry. The legal basis is Art.&nbsp;6 (1) (f) GDPR
+    (my legitimate interest in answering enquiries) or, if your enquiry concerns a contract,
+    Art.&nbsp;6 (1) (b) GDPR. I delete the data once your enquiry has been dealt with, unless statutory
+    retention obligations apply. Emails are handled through my email provider, WEB.DE (1&amp;1
+    Mail &amp; Media GmbH, Germany).
+  </p>
+
+  <h2>Your rights</h2>
+  <p>Under the GDPR you have the right to:</p>
+  <ul>
+    <li>access the personal data I hold about you (Art.&nbsp;15),</li>
+    <li>have incorrect data corrected (Art.&nbsp;16),</li>
+    <li>have your data deleted (Art.&nbsp;17),</li>
+    <li>have processing restricted (Art.&nbsp;18),</li>
+    <li>receive your data in a portable format (Art.&nbsp;20),</li>
+    <li>
+      object at any time to processing based on Art.&nbsp;6 (1) (f) GDPR, on grounds relating to your
+      particular situation (Art.&nbsp;21).
+    </li>
+  </ul>
+  <p>To exercise these rights, contact me using the details above.</p>
+  <p>
+    You also have the right to lodge a complaint with a data protection supervisory authority
+    (Art.&nbsp;77 GDPR). The authority responsible for me is the Bavarian State Office for Data
+    Protection Supervision (Bayerisches Landesamt für Datenschutzaufsicht, BayLDA), Promenade 18,
+    91522 Ansbach, Germany,
+    <a href="https://www.lda.bayern.de" rel="noopener">www.lda.bayern.de</a>.
+  </p>
+
+  <h2>No automated decision-making</h2>
+  <p>
+    No automated decision-making or profiling within the meaning of Art.&nbsp;22 GDPR takes place on
+    this website.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    I will update this privacy policy if the website or the services it uses change. The current
+    version is always available on this page.
+  </p>
+</TextPage>

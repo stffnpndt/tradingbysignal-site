@@ -1,0 +1,67 @@
+---
+import TextPage from '../layouts/TextPage.astro';
+import { operator as o } from '../data/operator';
+---
+
+<TextPage
+  title="Legal notice"
+  description="Legal notice (Impressum) for tradingbysignal.com."
+  updated="October 2026"
+>
+  <h2>Information pursuant to §&nbsp;5&nbsp;DDG</h2>
+  <address>
+    {o.name}<br />
+    {o.street}<br />
+    {o.city}<br />
+    {o.country}
+  </address>
+
+  <h2>Contact</h2>
+  <p>
+    Email: <a href={`mailto:${o.email}`}>{o.email}</a><br />
+    Phone: <a href={o.phoneHref}>{o.phone}</a>
+  </p>
+
+  <h2>Responsible for content</h2>
+  <p>Responsible for the content of this website pursuant to §&nbsp;18&nbsp;(2)&nbsp;MStV:</p>
+  <address>
+    {o.name}<br />
+    {o.street}<br />
+    {o.city}<br />
+    {o.country}
+  </address>
+
+  <h2>Liability for content</h2>
+  <p>
+    The content of this website has been prepared with care. However, I cannot guarantee that it
+    is accurate, complete or up to date. As a service provider I am responsible for my own content
+    under the general laws (§&nbsp;7&nbsp;(1)&nbsp;DDG). I am not obliged to monitor third-party information that
+    is transmitted or stored, or to look for circumstances that indicate illegal activity. My
+    obligation to remove or block the use of information under the general laws remains
+    unaffected. Liability in this respect is only possible from the time I become aware of a
+    specific infringement; once I do, I will remove the content concerned without delay.
+  </p>
+  <p>
+    Nothing on this website is financial or investment advice. See the
+    <a href="/disclaimer">risk disclaimer</a> for details.
+  </p>
+
+  <h2>Liability for links</h2>
+  <p>
+    This website contains links to external websites over whose content I have no control. I
+    therefore accept no responsibility for that content; the respective provider or operator is
+    always responsible for the content of linked pages. Linked pages were checked for possible
+    legal violations when the link was set, and no illegal content was apparent at that time.
+    Permanent monitoring of linked pages is not reasonable without concrete indications of an
+    infringement. If I become aware of an infringement, I will remove the link without delay.
+  </p>
+
+  <h2>Copyright</h2>
+  <p>
+    The texts, charts and other content created by the operator of this website are subject to
+    German copyright law. Copying, editing, distributing or any other use beyond the limits of
+    copyright law requires written consent. Where content was not created by the operator, the
+    copyrights of third parties are respected and such content is marked as such. If you notice a
+    copyright infringement, please let me know and I will remove the content without delay.
+  </p>
+</TextPage>
