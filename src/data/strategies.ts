@@ -370,7 +370,7 @@ const all: Strategy[] = [
         { label: 'Markets', value: '20 large coins and the Nasdaq-100 (QQQ), futures' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: '2x on coins, a little more on QQQ' },
+        { label: 'Leverage', value: '2x on coins, 3x on QQQ' },
         { label: 'Positions', value: 'Up to five equal legs each' },
         { label: 'Live since', value: '18 September 2026' },
       ],
@@ -425,7 +425,7 @@ const all: Strategy[] = [
         ],
       },
       risk: [
-        'Moderate leverage of 2x on coins, and a little more on QQQ, which the index’s lower volatility allows. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
+        'Leverage of 2x on coins and 3x on QQQ, which the index’s lower volatility allows. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
         'Each ladder has a fixed budget split into five equal legs, so the position never grows beyond its slot.',
         'When many ladders run at once and the free margin runs short, further legs are refused. Open positions are not affected.',
         'The trend check keeps coin ladders out of falling markets, so most sell-offs that start in a bear market are skipped.',
