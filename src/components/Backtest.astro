@@ -247,6 +247,10 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     position: relative;
     width: 100%;
     outline: none;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .plot.eq {
     height: 280px;
@@ -411,6 +415,14 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     }
   }
   @media (max-width: 40rem) {
+    .tip {
+      min-width: 0;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.75rem;
+    }
+    .tip :global(strong) {
+      font-size: 0.9375rem;
+    }
     .tiles {
       grid-template-columns: 1fr 1fr;
     }
@@ -435,6 +447,13 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     parent?.appendChild(n);
     return n;
   };
+
+  const hiders = new WeakMap<HTMLElement, () => void>();
+  document.addEventListener('pointerdown', (e) => {
+    document.querySelectorAll<HTMLElement>('.bt .charts').forEach((b) => {
+      if (!b.contains(e.target as Node)) hiders.get(b)?.();
+    });
+  });
 
   function draw(box: HTMLElement) {
     const data: Pt[] = JSON.parse(box.dataset.curve || '[]');
@@ -563,10 +582,19 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
       for (let i = 1; i < xs.length; i++) if (Math.abs(xs[i] - x) < Math.abs(xs[best] - x)) best = i;
       return best;
     };
+    // Mouse: follow the pointer, hide on leave. Touch: tap or drag sideways to
+    // read a week (vertical swipes still scroll the page); the readout stays
+    // until the reader taps somewhere else.
     for (const p of [eqBox, ddBox]) {
-      p.onpointermove = (e) => show(nearest(e.clientX));
-      p.onpointerleave = hide;
+      p.onpointerdown = (e) => show(nearest(e.clientX));
+      p.onpointermove = (e) => {
+        if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) show(nearest(e.clientX));
+      };
+      p.onpointerleave = (e) => {
+        if (e.pointerType === 'mouse') hide();
+      };
     }
+    hiders.set(box, hide);
     eqBox.onkeydown = (e) => {
       const n = e.shiftKey ? 13 : 1;
       if (e.key === 'ArrowRight') show((cur < 0 ? data.length - 1 : cur) + n);
