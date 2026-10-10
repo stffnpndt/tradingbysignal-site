@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Glyph from '../../components/Glyph.astro';
+import Backtest from '../../components/Backtest.astro';
 import IchimokuDiagram from '../../components/diagrams/IchimokuDiagram.astro';
 import AtrDiagram from '../../components/diagrams/AtrDiagram.astro';
 import RsiDiagram from '../../components/diagrams/RsiDiagram.astro';
@@ -29,6 +30,18 @@ const diagrams: Record<string, any> = {
   'rsi-red-legs': LadderDiagram,
 };
 const Diagram = diagrams[s.id];
+
+const top30 = 'Coins: the 30 largest by market value at the start of each year.';
+const backtestRuns: Record<string, { key: string; label: string; setup: string }[]> = {
+  'tf-ichimoku': [{ key: 'tf-ichimoku', label: 'Bitcoin and Ether', setup: 'Bitcoin and Ether, one position each, 2x leverage.' }],
+  'mr-atr': [{ key: 'mr-atr', label: 'Coins', setup: `${top30} Up to four positions, 2x leverage.` }],
+  'mr-rsi': [{ key: 'mr-rsi', label: 'Coins', setup: `${top30} Up to four positions of three tranches, 2x leverage.` }],
+  'rsi-red-legs': [
+    { key: 'rsi-red-legs', label: 'Coins', setup: `${top30} Up to eight ladders of five legs, 2x leverage.` },
+    { key: 'rsi-red-legs-qqq', label: 'Nasdaq-100 (QQQ)', setup: 'QQQ, one ladder of five legs, 3x leverage.' },
+  ],
+};
+const runs = backtestRuns[s.id] ?? [];
 
 const withPages = strategies.filter((x) => x.details);
 const others = strategies.filter((x) => x.id !== s.id);
@@ -139,7 +152,17 @@ const others = strategies.filter((x) => x.id !== s.id);
     </div>
   </section>
 
-  <section class="block more dark grain" aria-labelledby="more-title">
+  {runs.length > 0 && (
+    <section class="block dark grain" aria-labelledby="bt-title">
+      <div class="wrap">
+        <h2 id="bt-title">Backtest</h2>
+        <p class="lead">How the strategy would have traded since 2018, with the same rules, limits and leverage as live.</p>
+        <Backtest runs={runs} />
+      </div>
+    </section>
+  )}
+
+  <section class="block more grain" aria-labelledby="more-title">
     <div class="wrap">
       <h2 id="more-title">The other strategies</h2>
       <ul class="others">
@@ -394,12 +417,8 @@ const others = strategies.filter((x) => x.id !== s.id);
     padding: 1.25rem;
     border: 1px solid var(--rule);
     text-decoration: none;
-    color: var(--on-dark);
+    color: var(--ink);
     transition: border-color 200ms;
-    --ink: var(--on-dark);
-    --ink-soft: var(--on-dark-muted);
-    --fog: var(--stone);
-    --fog-2: #55575c;
   }
   .others a:hover {
     border-color: var(--gold);

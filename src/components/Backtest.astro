@@ -1,0 +1,586 @@
+---
+// Backtest results for one strategy: headline figures, the growth of a
+// starting balance (log scale), the drawdown below it, and returns per year.
+// Charts are drawn in the browser so they fit any width; the yearly table
+// carries the same story without JavaScript.
+import backtests from '../data/backtests.json';
+
+type Curve = [string, number, number, number]; // week, equity multiple, dd closed, dd intra-trade
+type Result = {
+  start: string;
+  end: string;
+  multiple: number;
+  cagr: number;
+  maxDdClosed: number;
+  maxDdIntra: number;
+  trades: number;
+  winRate: number;
+  profitFactor: number;
+  medianHoldDays: number;
+  timeInMarket: number;
+  liquidations: number;
+  years: { year: number; ret: number; dd: number; partial: boolean }[];
+  curve: Curve[];
+};
+
+interface Props {
+  // One entry per backtest; several are shown as tabs.
+  runs: { key: string; label: string; setup: string }[];
+}
+
+const { runs } = Astro.props;
+const all = backtests as unknown as Record<string, Result>;
+const items = runs.map((r) => ({ ...r, d: all[r.key] })).filter((r) => r.d);
+
+const month = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const fmtMonth = (s: string) => month.format(new Date(`${s}T00:00:00Z`));
+const pct = (v: number) => {
+  const n = Math.round(Math.abs(v) * 100);
+  return n === 0 ? '0%' : `${v < 0 ? '−' : '+'}${n.toLocaleString('en-US')}%`;
+};
+const plainPct = (v: number) => `${Math.round(Math.abs(v) * 100)}%`;
+const money = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
+const hold = (d: number) => (d <= 1 ? 'About a day' : `About ${Math.round(d)} days`);
+const uid = `bt-${items.map((i) => i.key).join('-')}`;
+---
+
+{items.length > 0 && (
+  <div class="bt" id={uid}>
+    {items.length > 1 && (
+      <div class="tabs" role="tablist" aria-label="Backtest">
+        {items.map((it, i) => (
+          <button type="button" role="tab" id={`${uid}-tab-${i}`} aria-controls={`${uid}-panel-${i}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={i}>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    )}
+
+    {items.map((it, i) => {
+      const d = it.d;
+      const last = d.years[d.years.length - 1];
+      return (
+        <div class="panel" role={items.length > 1 ? 'tabpanel' : undefined} id={`${uid}-panel-${i}`} aria-labelledby={items.length > 1 ? `${uid}-tab-${i}` : undefined} hidden={i !== 0}>
+          <p class="setup">
+            {fmtMonth(d.start)} to {fmtMonth(d.end)}. {it.setup} Starting balance $10,000, profits reinvested, fees included.
+          </p>
+
+          <dl class="tiles">
+            <div>
+              <dt>Average return per year</dt>
+              <dd>{pct(d.cagr)}</dd>
+            </div>
+            <div>
+              <dt>Worst drawdown</dt>
+              <dd>{pct(d.maxDdIntra)}</dd>
+              <span class="hint">{pct(d.maxDdClosed)} on closed trades</span>
+            </div>
+            <div>
+              <dt>Trades</dt>
+              <dd>{d.trades.toLocaleString('en-US')}</dd>
+              <span class="hint">{hold(d.medianHoldDays)} each, typically</span>
+            </div>
+            <div>
+              <dt>Winning trades</dt>
+              <dd>{plainPct(d.winRate)}</dd>
+              <span class="hint">Profit factor {d.profitFactor.toFixed(1)}</span>
+            </div>
+          </dl>
+
+          <div class="grid">
+            <div class="charts" data-curve={JSON.stringify(d.curve)}>
+              <figure class="chart">
+                <figcaption>Growth of $10,000 <span>(log scale)</span></figcaption>
+                <div class="plot eq" tabindex="0" role="img" aria-label={`Growth of $10,000 from ${fmtMonth(d.start)} to ${fmtMonth(d.end)}, ending at ${money(10000 * d.multiple)}. Use the arrow keys to move through the weeks.`}></div>
+              </figure>
+              <figure class="chart">
+                <figcaption>Drawdown from the previous high</figcaption>
+                <div class="plot dd" aria-hidden="true"></div>
+                <p class="legend">
+                  <span class="item"><span class="key area"></span>Including open trades at their lowest point</span>
+                  <span class="item"><span class="key line"></span>Closed trades only</span>
+                </p>
+              </figure>
+              <div class="tip" hidden></div>
+            </div>
+
+            <table class="years">
+              <caption>Year by year</caption>
+              <thead>
+                <tr><th scope="col">Year</th><th scope="col">Return</th><th scope="col">Worst drawdown</th></tr>
+              </thead>
+              <tbody>
+                {d.years.map((y) => (
+                  <tr>
+                    <th scope="row">{y.year}{y.partial && (y === last ? <span class="part"> to {fmtMonth(d.end).split(' ')[0]}</span> : <span class="part"> part</span>)}</th>
+                    <td class:list={{ neg: y.ret < 0 }}>{pct(y.ret)}</td>
+                    <td>{pct(y.dd)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {d.liquidations > 0 && (
+            <p class="liq">In the backtest, {d.liquidations === 1 ? 'one position was' : `${d.liquidations} positions were`} liquidated, losing the margin set aside for {d.liquidations === 1 ? 'it' : 'them'}. Both curves include these losses.</p>
+          )}
+        </div>
+      );
+    })}
+
+    <p class="fine">
+      Hypothetical results from a simulation on historical data, not live trading. Live results differ, and past performance is no guarantee of future results.{' '}
+      <a href="/how-it-works#backtests">How the backtests were made</a>
+    </p>
+  </div>
+)}
+
+<style>
+  .bt {
+    margin-top: 2rem;
+  }
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .tabs button {
+    font: inherit;
+    font-size: 0.9375rem;
+    color: var(--on-dark-muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+  }
+  .tabs button[aria-selected='true'] {
+    color: var(--stone);
+    background: var(--gold);
+    border-color: var(--gold);
+    font-weight: 600;
+  }
+  .setup {
+    max-width: 46rem;
+    margin: 0 0 1.75rem !important;
+  }
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin: 0 0 2.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .tiles > div {
+    padding: 1.25rem 1.25rem 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .tiles dt {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .tiles dd {
+    margin: 0;
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #f2f1ee;
+  }
+  .hint {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: 2.5rem;
+    align-items: start;
+  }
+  .charts {
+    position: relative;
+    display: grid;
+    gap: 1.75rem;
+  }
+  .chart {
+    margin: 0;
+  }
+  .chart figcaption {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+    margin-bottom: 0.5rem;
+  }
+  .chart figcaption span {
+    font-weight: 400;
+    color: var(--on-dark-muted);
+  }
+  .plot {
+    position: relative;
+    width: 100%;
+    outline: none;
+  }
+  .plot.eq {
+    height: 280px;
+  }
+  .plot.dd {
+    height: 150px;
+  }
+  .plot:focus-visible {
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+  .plot :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .plot :global(.gridline) {
+    stroke: rgba(231, 231, 229, 0.08);
+    stroke-width: 1;
+  }
+  .plot :global(.tick) {
+    fill: var(--on-dark-muted);
+    font: 11px var(--sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .plot :global(.line) {
+    fill: none;
+    stroke: var(--gold-bright);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+  .plot :global(.area) {
+    fill: rgba(155, 157, 161, 0.35);
+  }
+  .plot :global(.cross) {
+    stroke: var(--on-dark);
+    stroke-width: 1;
+    opacity: 0.6;
+  }
+  .plot :global(.dot) {
+    fill: var(--gold-bright);
+    stroke: var(--stone);
+    stroke-width: 2;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    margin: 0.75rem 0 0 !important;
+    font-size: 0.8125rem;
+  }
+  .key {
+    display: inline-block;
+    width: 14px;
+  }
+  .key.area {
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(155, 157, 161, 0.5);
+  }
+  .legend .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1rem;
+    white-space: nowrap;
+  }
+  .key.line {
+    height: 2px;
+    background: var(--gold-bright);
+  }
+  .tip {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    min-width: 11rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--stone-2);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+  .tip :global(strong) {
+    display: block;
+    font-size: 1rem;
+    color: #f2f1ee;
+    font-weight: 600;
+  }
+  .tip :global(.row) {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .tip :global(.row b) {
+    color: var(--on-dark);
+    font-weight: 600;
+  }
+
+  .years {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .years caption {
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+    padding-bottom: 0.5rem;
+  }
+  .years th,
+  .years td {
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--rule);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--on-dark-muted);
+  }
+  .years thead th {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .years th[scope='row'],
+  .years thead th:first-child {
+    text-align: left;
+    color: var(--on-dark);
+    font-weight: 500;
+  }
+  .years td:nth-child(2) {
+    color: #f2f1ee;
+  }
+  .part {
+    font-size: 0.75rem;
+    color: var(--on-dark-muted);
+    font-weight: 400;
+  }
+  .liq {
+    margin: 1.5rem 0 0 !important;
+    font-size: 0.875rem;
+    max-width: 46rem;
+  }
+  .fine {
+    margin: 2rem 0 0 !important;
+    font-size: 0.8125rem;
+    max-width: 46rem;
+  }
+  .fine a {
+    color: var(--on-dark);
+    text-decoration-color: var(--gold);
+    text-underline-offset: 0.2em;
+  }
+
+  @media (max-width: 60rem) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+    .years {
+      max-width: 24rem;
+    }
+  }
+  @media (max-width: 40rem) {
+    .tiles {
+      grid-template-columns: 1fr 1fr;
+    }
+    .plot.eq {
+      height: 220px;
+    }
+  }
+</style>
+
+<script>
+  type Pt = [string, number, number, number];
+  const NS = 'http://www.w3.org/2000/svg';
+  const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const pct = (v: number) => `${v < 0 ? '−' : ''}${Math.abs(v * 100).toFixed(1)}%`;
+  const money = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
+  const short = (v: number) =>
+    v >= 1e6 ? `$${+(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${+(v / 1e3).toFixed(0)}k` : `$${Math.round(v)}`;
+
+  const el = (name: string, attrs: Record<string, string | number>, parent?: Element) => {
+    const n = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+    parent?.appendChild(n);
+    return n;
+  };
+
+  function draw(box: HTMLElement) {
+    const data: Pt[] = JSON.parse(box.dataset.curve || '[]');
+    if (!data.length) return;
+    const eqBox = box.querySelector<HTMLElement>('.plot.eq')!;
+    const ddBox = box.querySelector<HTMLElement>('.plot.dd')!;
+    const tip = box.querySelector<HTMLElement>('.tip')!;
+    const W = eqBox.clientWidth;
+    if (!W) return;
+    const m = { l: 52, r: 8 };
+    const t0 = Date.parse(data[0][0]);
+    const t1 = Date.parse(data[data.length - 1][0]);
+    const X = (s: string) => m.l + ((Date.parse(s) - t0) / (t1 - t0)) * (W - m.l - m.r);
+
+    // Year ticks shared by both charts.
+    const years: number[] = [];
+    for (let y = new Date(t0).getUTCFullYear() + 1; y <= new Date(t1).getUTCFullYear(); y++) years.push(y);
+    const step = W < 520 ? 2 : 1;
+
+    // --- Equity, log scale --------------------------------------------------
+    const H1 = eqBox.clientHeight;
+    const top = 8;
+    const bot = 22;
+    const vals = data.map((p) => p[1] * 10000);
+    const lo = Math.log10(Math.min(...vals) * 0.92);
+    const hi = Math.log10(Math.max(...vals) * 1.08);
+    const Y1 = (v: number) => top + (1 - (Math.log10(v) - lo) / (hi - lo)) * (H1 - top - bot);
+    eqBox.replaceChildren();
+    const s1 = el('svg', { viewBox: `0 0 ${W} ${H1}` }, eqBox);
+    const ticks: number[] = [];
+    for (let e = Math.floor(lo); e <= Math.ceil(hi); e++)
+      for (const f of [1, 2, 5]) {
+        const v = f * 10 ** e;
+        if (Math.log10(v) >= lo && Math.log10(v) <= hi) ticks.push(v);
+      }
+    const span = hi - lo;
+    const shown = span > 2.2 ? ticks.filter((v) => Math.abs(Math.log10(v) % 1) < 1e-9) : ticks;
+    for (const v of shown) {
+      el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y1(v), y2: Y1(v) }, s1);
+      const tx = el('text', { class: 'tick', x: m.l - 8, y: Y1(v) + 4, 'text-anchor': 'end' }, s1);
+      tx.textContent = short(v);
+    }
+    years.forEach((y, i) => {
+      if (i % step) return;
+      const x = X(`${y}-01-01`);
+      const tx = el('text', { class: 'tick', x, y: H1 - 4, 'text-anchor': 'middle' }, s1);
+      tx.textContent = String(y);
+    });
+    el('path', { class: 'line', d: 'M' + data.map((p) => `${X(p[0]).toFixed(1)},${Y1(p[1] * 10000).toFixed(1)}`).join('L') }, s1);
+    const cross1 = el('line', { class: 'cross', y1: top, y2: H1 - bot, visibility: 'hidden' }, s1);
+    const dot = el('circle', { class: 'dot', r: 4.5, visibility: 'hidden' }, s1);
+
+    // --- Drawdown -----------------------------------------------------------
+    const H2 = ddBox.clientHeight;
+    const minDd = Math.min(...data.map((p) => p[3]));
+    const floor = Math.min(-0.1, Math.floor((minDd * 100) / 10) * 0.1);
+    const Y2 = (v: number) => 4 + (v / floor) * (H2 - 4 - bot);
+    ddBox.replaceChildren();
+    const s2 = el('svg', { viewBox: `0 0 ${W} ${H2}` }, ddBox);
+    const ddStep = floor <= -0.5 ? 0.2 : 0.1;
+    for (let v = 0; v >= floor - 1e-9; v -= ddStep) {
+      el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y2(v), y2: Y2(v) }, s2);
+      const tx = el('text', { class: 'tick', x: m.l - 8, y: Y2(v) + 4, 'text-anchor': 'end' }, s2);
+      tx.textContent = v === 0 ? '0%' : `−${Math.round(-v * 100)}%`;
+    }
+    years.forEach((y, i) => {
+      if (i % step) return;
+      const tx = el('text', { class: 'tick', x: X(`${y}-01-01`), y: H2 - 4, 'text-anchor': 'middle' }, s2);
+      tx.textContent = String(y);
+    });
+    const area =
+      `M${X(data[0][0]).toFixed(1)},${Y2(0)}` +
+      data.map((p) => `L${X(p[0]).toFixed(1)},${Y2(p[3]).toFixed(1)}`).join('') +
+      `L${X(data[data.length - 1][0]).toFixed(1)},${Y2(0)}Z`;
+    el('path', { class: 'area', d: area }, s2);
+    el('path', { class: 'line', d: 'M' + data.map((p) => `${X(p[0]).toFixed(1)},${Y2(p[2]).toFixed(1)}`).join('L') }, s2);
+    const cross2 = el('line', { class: 'cross', y1: 4, y2: H2 - bot, visibility: 'hidden' }, s2);
+
+    // --- Crosshair and tooltip ---------------------------------------------
+    const xs = data.map((p) => X(p[0]));
+    let cur = -1;
+    const show = (i: number) => {
+      cur = Math.max(0, Math.min(data.length - 1, i));
+      const p = data[cur];
+      const x = xs[cur];
+      for (const c of [cross1, cross2]) {
+        c.setAttribute('x1', String(x));
+        c.setAttribute('x2', String(x));
+        c.setAttribute('visibility', 'visible');
+      }
+      dot.setAttribute('cx', String(x));
+      dot.setAttribute('cy', String(Y1(p[1] * 10000)));
+      dot.setAttribute('visibility', 'visible');
+
+      tip.replaceChildren();
+      const head = document.createElement('div');
+      head.textContent = `Week of ${dateFmt.format(new Date(Date.parse(p[0]) - 6 * 864e5))}`;
+      const val = document.createElement('strong');
+      val.textContent = money(p[1] * 10000);
+      const row = (label: string, v: string) => {
+        const r = document.createElement('div');
+        r.className = 'row';
+        const a = document.createElement('span');
+        a.textContent = label;
+        const b = document.createElement('b');
+        b.textContent = v;
+        r.append(a, b);
+        return r;
+      };
+      tip.append(head, val, row('Drawdown, closed', pct(p[2])), row('Incl. open trades', pct(p[3])));
+      tip.hidden = false;
+      const tw = tip.offsetWidth;
+      const left = x + 14 + tw > box.clientWidth ? x - 14 - tw : x + 14;
+      tip.style.left = `${Math.max(0, left)}px`;
+      tip.style.top = `28px`;
+    };
+    const hide = () => {
+      for (const c of [cross1, cross2, dot]) c.setAttribute('visibility', 'hidden');
+      tip.hidden = true;
+    };
+    const nearest = (clientX: number) => {
+      const r = eqBox.getBoundingClientRect();
+      const x = clientX - r.left;
+      let best = 0;
+      for (let i = 1; i < xs.length; i++) if (Math.abs(xs[i] - x) < Math.abs(xs[best] - x)) best = i;
+      return best;
+    };
+    for (const p of [eqBox, ddBox]) {
+      p.onpointermove = (e) => show(nearest(e.clientX));
+      p.onpointerleave = hide;
+    }
+    eqBox.onkeydown = (e) => {
+      const n = e.shiftKey ? 13 : 1;
+      if (e.key === 'ArrowRight') show((cur < 0 ? data.length - 1 : cur) + n);
+      else if (e.key === 'ArrowLeft') show((cur < 0 ? data.length - 1 : cur) - n);
+      else if (e.key === 'Escape') hide();
+      else return;
+      e.preventDefault();
+    };
+    eqBox.onblur = hide;
+  }
+
+  document.querySelectorAll<HTMLElement>('.bt').forEach((bt) => {
+    const boxes = [...bt.querySelectorAll<HTMLElement>('.charts')];
+    const redraw = () => boxes.forEach((b) => b.offsetParent && draw(b));
+    redraw();
+    let w = 0;
+    new ResizeObserver(() => {
+      if (bt.clientWidth !== w) {
+        w = bt.clientWidth;
+        redraw();
+      }
+    }).observe(bt);
+
+    const tabs = [...bt.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...bt.querySelectorAll<HTMLElement>('.panel')];
+    const select = (i: number) => {
+      tabs.forEach((t, j) => {
+        t.setAttribute('aria-selected', String(i === j));
+        t.tabIndex = i === j ? 0 : -1;
+      });
+      panels.forEach((p, j) => (p.hidden = i !== j));
+      redraw();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i));
+      t.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        const n = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+        select(n);
+        tabs[n].focus();
+      });
+    });
+  });
+</script>

@@ -4,6 +4,10 @@ import Veins from '../components/Veins.astro';
 import Lanes from '../components/Lanes.astro';
 import Glyph from '../components/Glyph.astro';
 import { strategies } from '../data/strategies';
+import backtests from '../data/backtests.json';
+
+const bt = backtests as Record<string, { cagr: number; maxDdIntra: number }>;
+const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)}%`;
 
 const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
@@ -59,6 +63,11 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
                 )}
               </p>
               <p class="summary">{s.summary}</p>
+              {bt[s.id] && (
+                <p class="bt-line">
+                  Backtest since 2018: <strong>{pct(bt[s.id].cagr)}</strong> a year on average, worst drawdown <strong>{pct(bt[s.id].maxDdIntra)}</strong>
+                </p>
+              )}
             {s.details && <a class="more" href={`/strategies/${s.id}`}>How it works in detail</a>}
             </div>
           </li>
@@ -240,6 +249,15 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .more:hover {
     text-decoration-color: var(--ink);
+  }
+  .bt-line {
+    margin: 0.6rem 0 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .bt-line strong {
+    color: var(--ink);
+    font-weight: 600;
   }
   .paused {
     font-weight: 600;

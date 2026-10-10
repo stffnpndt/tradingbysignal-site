@@ -123,6 +123,23 @@ const markets = [
       </div>
     </div>
   </section>
+  <section class="block grain" id="backtests" aria-labelledby="bt-title">
+    <div class="wrap narrow">
+      <p class="kicker">5. Backtests</p>
+      <h2 id="bt-title">How the backtests were made</h2>
+      <p>Each strategy page shows a backtest from 2018 to today. It simulates the strategy as a whole portfolio, with the same limits as live trading, not just one coin at a time.</p>
+      <ul class="plain">
+        <li><strong>Signals:</strong> the same TradingView scripts that trade live, run on the historical data of every coin.</li>
+        <li><strong>Which coins:</strong> a new trade may only open in one of the 30 largest coins by market value at the start of that year. Coins are chosen by what was large then, not by what did well later.</li>
+        <li><strong>Limits:</strong> the same maximum number of positions, legs and leverage as live. When more signals arrive than there are free slots, the larger coin gets the slot, and legs are skipped when there is not enough free margin.</li>
+        <li><strong>Costs:</strong> trading fees of 0.1% on every buy and sell. Funding payments on futures and taxes are not included.</li>
+        <li><strong>Liquidation:</strong> every position has its own isolated margin. If price reaches its liquidation price, the position is closed there and its margin is lost.</li>
+        <li><strong>Sizing:</strong> the simulation starts with $10,000 and reinvests profits, so position sizes grow and shrink with the balance. That is why the growth charts use a log scale.</li>
+        <li><strong>Drawdown:</strong> shown twice. Once on closed trades, and once with open trades valued at their lowest point, which is the more cautious view.</li>
+      </ul>
+      <p class="note" style="margin-top: 1.75rem !important">A backtest shows how rules would have performed in the past. It cannot include every real-world effect, such as slippage in fast markets or exchange outages, and the strategies were designed with this history in view. Live results will differ.</p>
+    </div>
+  </section>
 </Base>
 
 <style>
