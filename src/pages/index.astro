@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import Veins from '../components/Veins.astro';
 import Lanes from '../components/Lanes.astro';
 import Glyph from '../components/Glyph.astro';
+import Backtest from '../components/Backtest.astro';
 import { strategies } from '../data/strategies';
 import backtests from '../data/backtests.json';
 
@@ -80,7 +81,28 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
     </div>
   </section>
 
-  <section class="flow dark grain" aria-labelledby="flow-title">
+  <section class="portfolio dark grain" aria-labelledby="portfolio-title">
+    <div class="wrap">
+      <h2 id="portfolio-title">All strategies together</h2>
+      <p class="section-intro">
+        The strategies are meant to run side by side. Their bad stretches rarely come at the same
+        time, so together they lose far less in a drawdown than most of them do on their own. This
+        backtest runs them as one portfolio.
+      </p>
+      <Backtest
+        runs={[
+          {
+            key: 'portfolio',
+            label: 'Portfolio',
+            setup:
+              'Five equal parts: Ichimoku, ATR Mean Reversion, RSI Mean Reversion, and RSI Red Legs on coins and on QQQ, each with its own rules and limits. Once a month the balance is split back into equal parts. Live trading uses a similar, but not equal, split.',
+          },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section class="flow grain" aria-labelledby="flow-title">
     <div class="wrap">
       <h2 id="flow-title">How a trade happens</h2>
       <ol class="steps">
@@ -90,7 +112,7 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
         </li>
         <li>
           <h3>The bridge checks it</h3>
-          <p>A small server checks each signal before acting: position limits, available cash, duplicates and overlaps with other strategies. Refused signals are logged, never forced through.</p>
+          <p>A small server checks each signal before acting: position limits, free margin, duplicates and whether the coin can be traded. Refused signals are logged, never forced through.</p>
         </li>
         <li>
           <h3>The order goes to OKX</h3>
@@ -265,11 +287,6 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .more.on-dark {
     margin-top: 2.5rem;
-    color: var(--on-dark);
-  }
-  .more.on-dark:hover {
-    color: var(--gold-bright);
-    text-decoration-color: var(--gold-bright);
   }
   .legend {
     display: flex;
@@ -294,11 +311,18 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
 
   /* Flow ----------------------------------------------------------------- */
+  .portfolio,
   .flow {
     padding-block: clamp(4.5rem, 9vw, 7rem);
   }
-  .flow h2 {
+  .portfolio h2 {
     color: #f2f1ee;
+  }
+  .portfolio .section-intro {
+    color: var(--on-dark-muted);
+  }
+  .flow .steps li {
+    border-top-color: var(--ink);
   }
   .steps {
     list-style: none;
@@ -322,11 +346,10 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
     left: 0;
     width: 2.5rem;
     height: 1px;
-    background: var(--gold-bright);
-    box-shadow: 0 0 10px rgba(230, 201, 136, 0.6);
+    background: var(--gold);
   }
   .steps h3 {
-    color: #f2f1ee;
+    color: var(--ink);
   }
   .steps h3::before {
     content: counter(step) '. ';
@@ -334,7 +357,7 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .steps p {
     margin: 0.5rem 0 0;
-    color: var(--on-dark-muted);
+    color: var(--ink-soft);
   }
 
 
