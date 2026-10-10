@@ -19,7 +19,6 @@ const markets = [
   { name: 'RSI Mean Reversion', market: 'Futures', lev: '2x' },
   { name: 'RSI Red Legs, coins', market: 'Futures', lev: '2x' },
   { name: 'RSI Red Legs, QQQ', market: 'Futures', lev: 'Slightly higher' },
-  { name: 'Cross-Sectional Momentum', market: 'Futures, paused', lev: '–' },
 ];
 ---
 
@@ -46,11 +45,7 @@ const markets = [
       <div class="pair">
         <div>
           <h3>Alerts from TradingView</h3>
-          <p>Four strategies run as scripts on TradingView. When their rules are met, they send an alert with the strategy, the coin and the action. Some react at the close of a daily or 4-hour candle; others have orders waiting at a price level, which can fill at any time of day.</p>
-        </div>
-        <div>
-          <h3>A weekly schedule</h3>
-          <p>Cross-Sectional Momentum, currently paused, does not wait for alerts. While active, a scheduled job fetches fresh prices from an independent data source once a week, ranks the coins and rebalances the positions.</p>
+          <p>Every strategy runs as a script on TradingView. When their rules are met, they send an alert with the strategy, the coin and the action. Some react at the close of a daily or 4-hour candle; others have orders waiting at a price level, which can fill at any time of day.</p>
         </div>
       </div>
     </div>
@@ -76,7 +71,6 @@ const markets = [
       <div class="notes">
         <p class="note">If a check fails, the signal is logged and skipped. Nothing is forced through, and a refused signal can be retried safely.</p>
         <p class="note">After a market-wide sell-off, many alerts can arrive within seconds. Each strategy’s signals are handled one at a time, and a slot is reserved before any order is placed, so the limits hold even then.</p>
-        <p class="note">The weekly job for Cross-Sectional Momentum, when active, runs its own checks: it only trades when the price data for every coin is complete and up to date, and it confirms that last week’s positions are closed before it opens new ones.</p>
       </div>
     </div>
   </section>

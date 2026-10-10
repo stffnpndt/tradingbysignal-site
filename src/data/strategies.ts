@@ -444,5 +444,8 @@ const all: Strategy[] = [
   },
 ];
 
-// Always listed in the order the strategies went live.
-export const strategies: Strategy[] = [...all].sort((a, b) => a.liveSince.localeCompare(b.liveSince));
+// Always listed in the order the strategies went live. Paused strategies stay
+// in the data above but are not shown on the site.
+export const strategies: Strategy[] = all
+  .filter((s) => !s.pausedSince)
+  .sort((a, b) => a.liveSince.localeCompare(b.liveSince));
