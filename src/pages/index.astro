@@ -24,7 +24,7 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
     <div class="hero-body wrap">
       <h1>A crypto trading system that follows rules, not hunches.</h1>
       <p class="lede">
-        Five strategies, each backtested before it trades real money, all executed automatically.
+        Five strategies, each backtested before it trades real money, all executed automatically on futures.
         This site explains how they work and how they perform.
       </p>
     </div>
@@ -52,7 +52,11 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
               <p class="meta">
                 <span>{s.timeframe}</span>
                 <span>{s.market}</span>
-                <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
+                {s.pausedSince ? (
+                  <span class="paused">Paused since <time datetime={s.pausedSince}>{fmt.format(new Date(`${s.pausedSince}T00:00:00Z`))}</time></span>
+                ) : (
+                  <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
+                )}
               </p>
               <p class="summary">{s.summary}</p>
             {s.details && <a class="more" href={`/strategies/${s.id}`}>How it works in detail</a>}
@@ -73,7 +77,7 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
       <ol class="steps">
         <li>
           <h3>A signal fires</h3>
-          <p>Most strategies watch the market on TradingView and send a buy or sell signal when their rules are met, at the close of a candle or as soon as price hits a level during it. One rebalances on a fixed weekly schedule.</p>
+          <p>Each strategy watches the market on TradingView and sends a buy or sell signal when its rules are met, at the close of a candle or as soon as price hits a level during it.</p>
         </li>
         <li>
           <h3>The bridge checks it</h3>
@@ -236,6 +240,10 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
   }
   .more:hover {
     text-decoration-color: var(--ink);
+  }
+  .paused {
+    font-weight: 600;
+    color: var(--ink);
   }
   .more.on-dark {
     margin-top: 2.5rem;

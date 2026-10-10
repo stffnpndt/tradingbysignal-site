@@ -11,6 +11,8 @@ export interface Strategy {
   liveSince: string; // ISO date
   summary: string;
   glyph: Glyph;
+  // Set when a strategy is switched off for now (ISO date).
+  pausedSince?: string;
   details?: StrategyDetails;
 }
 
@@ -45,20 +47,20 @@ const all: Strategy[] = [
     id: 'mr-atr',
     name: 'ATR Mean Reversion',
     timeframe: 'Daily',
-    market: 'Crypto spot, broad universe',
+    market: 'Crypto futures, broad universe',
     liveSince: '2026-02-24',
     summary:
-      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually at the close of the same day. Up to five positions at a time.',
+      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually at the close of the same day. Up to four positions at a time.',
     glyph: 'atr',
     details: {
       tagline:
         'Waits below the market for sell-offs that overshoot, buys the panic, and is usually out again by the close of the same day.',
       facts: [
-        { label: 'Markets', value: 'A broad set of liquid coins, spot' },
+        { label: 'Markets', value: 'A broad set of liquid coins, futures' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: 'None' },
-        { label: 'Positions', value: 'Up to five, equal size' },
+        { label: 'Leverage', value: '2x, isolated margin' },
+        { label: 'Positions', value: 'Up to four, equal size' },
         { label: 'Typical holding', value: 'Less than a day' },
         { label: 'Live since', value: '24 February 2026' },
       ],
@@ -106,8 +108,8 @@ const all: Strategy[] = [
         note: 'A position is only held overnight when the close lands between the two exit rules, which is rare.',
       },
       risk: [
-        'No leverage. Coins are bought on the spot market, so a trade can never lose more than the capital in it.',
-        'Capital is split into five equal slots, so a single coin is never more than a fifth of the strategy.',
+        'Moderate leverage of 2x on futures. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
+        'Capital is split into four equal slots, so a single coin is never more than a quarter of the strategy.',
         'Short holding times keep exposure low: most of the time the strategy holds nothing and waits.',
         'It buys into falling prices on purpose. When a sell-off turns into a crash, several positions can lose at once, and the emergency stop sits far below the entry.',
       ],
@@ -118,7 +120,7 @@ const all: Strategy[] = [
       badIn: [
         'Crashes that keep going for days, where there is no rebound to sell into.',
         'Calm markets: few setups, and orders below the low are rarely reached.',
-        'Market-wide sell-offs, when all five slots fill on the same day and the positions move together.',
+        'Market-wide sell-offs, when all slots fill on the same day and the positions move together.',
       ],
     },
   },
@@ -126,7 +128,7 @@ const all: Strategy[] = [
     id: 'tf-ichimoku',
     name: 'Ichimoku Trend Following',
     timeframe: '4-hour',
-    market: 'Bitcoin and Ether, spot',
+    market: 'Bitcoin and Ether, futures',
     liveSince: '2025-08-01',
     summary:
       'Rides established trends using the Ichimoku cloud. A daily Bitcoin breakout filter keeps it out of the market when the broader trend is weak.',
@@ -135,10 +137,10 @@ const all: Strategy[] = [
       tagline:
         'Rides sustained trends in Bitcoin and Ether, but only once several independent signals agree that the trend is real.',
       facts: [
-        { label: 'Markets', value: 'Bitcoin and Ether, spot' },
+        { label: 'Markets', value: 'Bitcoin and Ether, futures' },
         { label: 'Chart', value: '4-hour candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: 'None' },
+        { label: 'Leverage', value: '2x, isolated margin' },
         { label: 'Positions', value: 'One per asset' },
         { label: 'Trades per year', value: 'About 1 to 5 per coin' },
         { label: 'Live since', value: '1 August 2025' },
@@ -180,9 +182,9 @@ const all: Strategy[] = [
         note: 'The Bitcoin regime only decides whether new trades may open. Once a trade is running, the exit rules alone decide when it ends.',
       },
       risk: [
-        'No leverage. Positions are bought on the spot market, so a trade can never lose more than the capital in it, and the protective stop is there to cut a failed trade early.',
+        'Moderate leverage of 2x on futures. Every position uses isolated margin, so a single trade can never draw on the rest of the account. The protective stop is there to cut a failed trade early.',
         'Capital is split evenly between Bitcoin and Ether, with at most one position in each.',
-        'Long only. In falling markets the strategy is simply out and holds cash.',
+        'Long only. In falling markets the strategy is simply out of the market.',
       ],
       goodIn: [
         'Long, persistent uptrends, such as bull markets in Bitcoin and Ether.',
@@ -204,6 +206,7 @@ const all: Strategy[] = [
     summary:
       'Ranks a filtered set of coins by recent performance every week. Goes long the strongest and short the weakest, so it can earn in rising and falling markets.',
     glyph: 'momentum',
+    pausedSince: '2026-10-10',
     details: {
       tagline:
         'Every week, it buys the strongest of the largest coins and shorts the weakest, betting that recent winners keep beating recent losers.',
@@ -213,7 +216,7 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long and short' },
         { label: 'Leverage', value: '1.5x, isolated margin' },
         { label: 'Positions', value: 'Two or three at a time' },
-        { label: 'Live since', value: '31 January 2026' },
+        { label: 'Traded live', value: '31 January to 10 October 2026' },
       ],
       idea: [
         'Momentum is one of the most persistent effects in financial markets: assets that have done well recently tend to keep doing well for a while, and laggards tend to keep lagging. In crypto, where money rotates quickly between a handful of large coins, the effect is especially visible.',
@@ -272,7 +275,7 @@ const all: Strategy[] = [
     id: 'mr-rsi',
     name: 'RSI Mean Reversion',
     timeframe: 'Daily',
-    market: 'Crypto spot',
+    market: 'Crypto futures',
     liveSince: '2026-07-25',
     summary:
       'Waits for a deeply oversold short-term RSI and scales in over up to three tranches as the dip extends, then exits once price recovers.',
@@ -281,10 +284,10 @@ const all: Strategy[] = [
       tagline:
         'Buys short, sharp dips inside an uptrend, adds as the dip stretches, and sells everything at once when the bounce comes.',
       facts: [
-        { label: 'Markets', value: 'Liquid coins, spot' },
+        { label: 'Markets', value: 'Liquid coins, futures' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: 'None' },
+        { label: 'Leverage', value: '2x, isolated margin' },
         { label: 'Typical holding', value: 'A few days' },
         { label: 'Live since', value: '25 July 2026' },
       ],
@@ -330,12 +333,12 @@ const all: Strategy[] = [
           },
           {
             title: 'No stop-loss',
-            text: 'There is no stop. Risk is limited by the trend check at the start, by splitting each position into tranches, and by trading spot without leverage.',
+            text: 'There is no stop. Risk is limited by the trend check at the start, by splitting each position into tranches, and by moderate leverage on isolated margin.',
           },
         ],
       },
       risk: [
-        'No leverage. Coins are bought on the spot market, so a position can never lose more than the capital in it.',
+        'Moderate leverage of 2x on futures. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
         'Each coin has a fixed slot, and each slot is filled in equal tranches, so a single dip never commits the whole slot at the first price.',
         'Only a limited number of coins can be held at once, which caps how much is invested during a market-wide sell-off.',
         'No stop-loss. A dip that turns into a lasting decline is held until it bounces, which can take a while.',
@@ -364,10 +367,10 @@ const all: Strategy[] = [
       tagline:
         'Starts buying when a market is oversold, adds a leg on every red day, and sells the whole ladder as soon as a small profit is in.',
       facts: [
-        { label: 'Markets', value: '20 large coins (spot) and the Nasdaq-100 (QQQ, perpetual future)' },
+        { label: 'Markets', value: '20 large coins and the Nasdaq-100 (QQQ), futures' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
-        { label: 'Leverage', value: 'None on coins, leveraged on QQQ' },
+        { label: 'Leverage', value: '2x on coins, a little more on QQQ' },
         { label: 'Positions', value: 'Up to five equal legs each' },
         { label: 'Live since', value: '18 September 2026' },
       ],
@@ -422,8 +425,9 @@ const all: Strategy[] = [
         ],
       },
       risk: [
-        'Coins are bought on the spot market without leverage. QQQ is traded as a perpetual future with leverage, which the index’s lower volatility allows; a deep fall in the Nasdaq still hits that position harder.',
+        'Moderate leverage of 2x on coins, and a little more on QQQ, which the index’s lower volatility allows. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
         'Each ladder has a fixed budget split into five equal legs, so the position never grows beyond its slot.',
+        'When many ladders run at once and the free margin runs short, further legs are refused. Open positions are not affected.',
         'The trend check keeps coin ladders out of falling markets, so most sell-offs that start in a bear market are skipped.',
         'No stop-loss. A sell-off that keeps going after all five legs are in is held until it bounces.',
       ],

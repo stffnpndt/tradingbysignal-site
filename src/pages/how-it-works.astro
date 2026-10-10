@@ -8,22 +8,22 @@ const checks = [
   { title: 'In the universe', text: 'The coin is on the list of approved markets, and on the strategy’s own list where it has one.' },
   { title: 'Not a duplicate', text: 'A signal that was already handled for the same candle is dropped, so a repeated alert never trades twice.' },
   { title: 'Room for it', text: 'The strategy has a free position slot, or room for another tranche in the position it already holds.' },
-  { title: 'No clash', text: 'Where it matters, a coin that the futures strategy already holds is skipped, so two strategies do not pile into the same coin.' },
-  { title: 'Enough cash', text: 'There is enough free cash for the order, with a reserve kept aside.' },
+  { title: 'Tradable', text: 'The coin has a futures contract on OKX Europe. If it does not, the signal is skipped; there is no fallback to another market.' },
+  { title: 'Enough margin', text: 'There is enough free margin for the order, with a reserve kept aside. When the account is fully in use, late legs are refused.' },
   { title: 'Big enough', text: 'The order meets the exchange’s minimum size, so it does not fail halfway.' },
 ];
 
 const markets = [
-  { name: 'ATR Mean Reversion', market: 'Spot', lev: 'None' },
-  { name: 'RSI Mean Reversion', market: 'Spot', lev: 'None' },
-  { name: 'RSI Red Legs, coins', market: 'Spot', lev: 'None' },
-  { name: 'Ichimoku Trend Following', market: 'Spot', lev: 'None' },
-  { name: 'RSI Red Legs, QQQ', market: 'Perpetual-style future', lev: 'Leveraged' },
-  { name: 'Cross-Sectional Momentum', market: 'Dated futures, isolated margin', lev: '1.5x' },
+  { name: 'Ichimoku Trend Following', market: 'Futures', lev: '2x' },
+  { name: 'ATR Mean Reversion', market: 'Futures', lev: '2x' },
+  { name: 'RSI Mean Reversion', market: 'Futures', lev: '2x' },
+  { name: 'RSI Red Legs, coins', market: 'Futures', lev: '2x' },
+  { name: 'RSI Red Legs, QQQ', market: 'Futures', lev: 'Slightly higher' },
+  { name: 'Cross-Sectional Momentum', market: 'Futures, paused', lev: '–' },
 ];
 ---
 
-<Base title="How it works | Trading B(u)y Signal" description="How a signal becomes a trade: alerts and schedules, the checks in between, execution on OKX Europe and a record of every step.">
+<Base title="How it works | Trading B(u)y Signal" description="How a signal becomes a trade: alerts, the checks in between, execution on OKX Europe and a record of every step.">
   <section class="head dark grain">
     <header class="site-header wrap">
       <a class="wordmark" href="/">Trading B(u)y Signal</a>
@@ -50,7 +50,7 @@ const markets = [
         </div>
         <div>
           <h3>A weekly schedule</h3>
-          <p>Cross-Sectional Momentum does not wait for alerts. Once a week, a scheduled job fetches fresh prices from an independent data source, ranks the coins and rebalances the positions.</p>
+          <p>Cross-Sectional Momentum, currently paused, does not wait for alerts. While active, a scheduled job fetches fresh prices from an independent data source once a week, ranks the coins and rebalances the positions.</p>
         </div>
       </div>
     </div>
@@ -76,7 +76,7 @@ const markets = [
       <div class="notes">
         <p class="note">If a check fails, the signal is logged and skipped. Nothing is forced through, and a refused signal can be retried safely.</p>
         <p class="note">After a market-wide sell-off, many alerts can arrive within seconds. Each strategy’s signals are handled one at a time, and a slot is reserved before any order is placed, so the limits hold even then.</p>
-        <p class="note">The weekly job for Cross-Sectional Momentum runs its own checks: it only trades when the price data for every coin is complete and up to date, and it confirms that last week’s positions are closed before it opens new ones.</p>
+        <p class="note">The weekly job for Cross-Sectional Momentum, when active, runs its own checks: it only trades when the price data for every coin is complete and up to date, and it confirms that last week’s positions are closed before it opens new ones.</p>
       </div>
     </div>
   </section>
@@ -85,7 +85,7 @@ const markets = [
     <div class="wrap narrow">
       <p class="kicker">3. Execution</p>
       <h2 id="exec-title">Orders on OKX Europe</h2>
-      <p>All trades run on OKX Europe, the exchange’s EU platform. Spot trades are made against USDC. Each strategy has its own budget and its own book of positions.</p>
+      <p>All trades run on OKX Europe, the exchange’s EU platform. Every strategy trades futures with moderate leverage, on isolated margin, with USDC as collateral. Each strategy has its own budget and its own book of positions.</p>
       <table class="markets">
         <thead>
           <tr><th scope="col">Strategy</th><th scope="col">Market</th><th scope="col">Leverage</th></tr>
@@ -97,10 +97,10 @@ const markets = [
         </tbody>
       </table>
       <ul class="plain">
-        <li>Orders are placed at market. Large orders are split into smaller pieces to keep the price impact low.</li>
+        <li>Orders are placed at market, on the coin’s futures contract.</li>
         <li>Every fill is confirmed with the exchange before the position is recorded, using the amount actually filled.</li>
         <li>When two strategies hold the same coin, each one tracks only its own share, and a sell signal only ever sells what that strategy bought.</li>
-        <li>The futures positions use isolated margin, so a loss in one position can never draw on the rest of the account.</li>
+        <li>Every position uses isolated margin, so a loss in one position can never draw on the rest of the account.</li>
       </ul>
     </div>
   </section>

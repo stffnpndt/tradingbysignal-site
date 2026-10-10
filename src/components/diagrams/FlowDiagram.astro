@@ -19,11 +19,11 @@ const events = [
     order: 'No order',
   },
   {
-    source: 'Weekly schedule',
-    what: 'Cross-Sectional Momentum: rebalance',
-    check: 'Price data complete, old positions closed',
+    source: 'TradingView alert',
+    what: 'RSI Red Legs: add a leg',
+    check: 'All checks pass',
     ok: true,
-    order: 'New positions open',
+    order: 'Order filled',
   },
   {
     source: 'TradingView alert',
@@ -34,10 +34,10 @@ const events = [
   },
   {
     source: 'TradingView alert',
-    what: 'RSI Red Legs: sell the ladder',
-    check: 'All checks pass',
-    ok: true,
-    order: 'Order filled',
+    what: 'ATR Mean Reversion: buy',
+    check: 'Refused: no futures contract for this coin',
+    ok: false,
+    order: 'No order',
   },
 ];
 const e0 = events[0];
@@ -56,14 +56,14 @@ const e0 = events[0];
       <span class="lamp" aria-hidden="true"></span>
       <span class="name">Checks</span>
       <span class="val" data-v="check">{e0.check}</span>
-      <span class="sub">The bridge or the weekly executor</span>
+      <span class="sub">The bridge</span>
     </li>
     <li class="link on" data-ln="1" aria-hidden="true"><span></span></li>
     <li class="st on" data-st="2">
       <span class="lamp" aria-hidden="true"></span>
       <span class="name">OKX Europe</span>
       <span class="val" data-v="order">{e0.order}</span>
-      <span class="sub">Spot or futures</span>
+      <span class="sub">Futures, isolated margin</span>
     </li>
     <li class="link on" data-ln="2" aria-hidden="true"><span></span></li>
     <li class="st on" data-st="3">

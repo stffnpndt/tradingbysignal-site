@@ -43,6 +43,9 @@ const others = strategies.filter((x) => x.id !== s.id);
 
     <div class="wrap intro">
       <h1>{s.name}</h1>
+      {s.pausedSince && (
+        <p class="status">Paused since {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${s.pausedSince}T00:00:00Z`))}. The description below shows how it trades while active.</p>
+      )}
       <p class="tagline">{d.tagline}</p>
       <dl class="facts">
         {d.facts.map((f) => (
@@ -192,6 +195,15 @@ const others = strategies.filter((x) => x.id !== s.id);
     letter-spacing: -0.02em;
     color: #f2f1ee;
     max-width: 14ch;
+  }
+  .status {
+    display: inline-block;
+    margin: 1.25rem 0 0;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--gold);
+    border-radius: 999px;
+    font-size: 0.875rem;
+    color: var(--gold-bright);
   }
   .tagline {
     margin: 1.5rem 0 0;

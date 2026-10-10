@@ -18,7 +18,10 @@ for (let y = start.getUTCFullYear(); y <= today.getUTCFullYear(); y++) {
 const fmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const lanes = strategies.map((s, i) => {
   const d = new Date(`${s.liveSince}T00:00:00Z`);
-  return { ...s, x: pct(d), since: fmt.format(d), i };
+  const p = s.pausedSince ? new Date(`${s.pausedSince}T00:00:00Z`) : null;
+  const end = p ? Math.min(100, pct(p)) : 100;
+  const label = p ? `Live ${fmt.format(d)} – ${fmt.format(p)}, now paused` : `Live since ${fmt.format(d)}`;
+  return { ...s, x: pct(d), end, label, paused: !!p, i };
 });
 ---
 
@@ -40,16 +43,17 @@ const lanes = strategies.map((s, i) => {
           {years.map((y) => (
             <span class="gridline" style={`left:${y.x}%`} aria-hidden="true" />
           ))}
-          <span class="line" style={`left:${l.x}%`} aria-hidden="true" />
+          <span class:list={['line', { paused: l.paused }]} style={`left:${l.x}%;right:${100 - l.end}%`} aria-hidden="true" />
           <span class="start" style={`left:${l.x}%`} aria-hidden="true" />
-          <span class:list={['since', { flip: l.x > 60 }]} style={`left:${l.x}%`}>Live since {l.since}</span>
+          {l.paused && <span class="stop" style={`left:${l.end}%`} aria-hidden="true" />}
+          <span class:list={['since', { flip: l.x > 60 }]} style={`left:${l.x}%`}>{l.label}</span>
         </div>
       </li>
     ))}
   </ol>
 
   <figcaption id="lanes-caption">
-    Each line runs from the day a strategy started trading real money until today.
+    Each line runs from the day a strategy started trading real money until today, or until it was paused.
   </figcaption>
 </figure>
 
@@ -132,7 +136,6 @@ const lanes = strategies.map((s, i) => {
   }
   .line {
     position: absolute;
-    right: 0;
     top: 50%;
     height: 2px;
     margin-top: -1px;
@@ -143,6 +146,20 @@ const lanes = strategies.map((s, i) => {
     transform-origin: left center;
     animation: draw 900ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
     animation-delay: calc(var(--i) * 140ms + 150ms);
+  }
+  .line.paused {
+    background: linear-gradient(90deg, var(--gold-bright), var(--gold) 30%, rgba(195, 160, 90, 0.45));
+    box-shadow: none;
+  }
+  .stop {
+    position: absolute;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: var(--stone);
+    border: 1.5px solid var(--gold);
   }
   .start {
     position: absolute;
@@ -160,7 +177,6 @@ const lanes = strategies.map((s, i) => {
     margin-left: -6px;
     font-size: 0.75rem;
     color: var(--muted);
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
   .since.flip {
