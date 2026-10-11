@@ -62,7 +62,6 @@ const all: Strategy[] = [
         { label: 'Leverage', value: '2x, isolated margin' },
         { label: 'Positions', value: 'Up to eight, equal size' },
         { label: 'Typical holding', value: 'Less than a day' },
-        { label: 'Live since', value: '24 February 2026' },
       ],
       idea: [
         'Crypto overreacts. On a day of heavy selling, liquidations and triggered stops push prices further than the news behind the move would justify, and part of that overshoot is often undone within hours. The strategy tries to be the buyer at the moment the sellers run out.',
@@ -143,7 +142,6 @@ const all: Strategy[] = [
         { label: 'Leverage', value: '2x, isolated margin' },
         { label: 'Positions', value: 'One per asset' },
         { label: 'Trades per year', value: 'About 1 to 5 per coin' },
-        { label: 'Live since', value: '1 August 2025' },
       ],
       idea: [
         'Crypto markets trend. When Bitcoin or Ether start a sustained move, it often runs for weeks or months, longer than most people expect. A trend-following strategy does not try to predict these moves. It waits until a trend is clearly under way, joins it, and stays in until the trend loses its drive.',
@@ -216,7 +214,6 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long and short' },
         { label: 'Leverage', value: '1.5x, isolated margin' },
         { label: 'Positions', value: 'Two or three at a time' },
-        { label: 'Traded live', value: '31 January to 10 October 2026' },
       ],
       idea: [
         'Momentum is one of the most persistent effects in financial markets: assets that have done well recently tend to keep doing well for a while, and laggards tend to keep lagging. In crypto, where money rotates quickly between a handful of large coins, the effect is especially visible.',
@@ -289,7 +286,6 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: '2x, isolated margin' },
         { label: 'Typical holding', value: 'A few days' },
-        { label: 'Live since', value: '25 July 2026' },
       ],
       idea: [
         'In a healthy uptrend, sell-offs rarely last long. A few red days in a row push a coin far below where it traded a week earlier, short-term traders give up, and buyers who missed the trend step back in. The very short-term RSI measures exactly this kind of stretch: it drops to extreme lows after only a handful of falling days.',
@@ -372,7 +368,6 @@ const all: Strategy[] = [
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: '2x on coins, 3x on QQQ' },
         { label: 'Positions', value: 'Up to five equal legs each' },
-        { label: 'Live since', value: '18 September 2026' },
       ],
       idea: [
         'Dips rarely end on the first red day. A sell-off often runs for several days, and trying to pick the exact low is a guessing game. This strategy does not guess. It starts small when a market first looks oversold and keeps adding as long as the selling continues, so the average price falls with every leg.',

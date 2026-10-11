@@ -10,7 +10,6 @@ import backtests from '../data/backtests.json';
 const bt = backtests as Record<string, { cagr: number; maxDdIntra: number }>;
 const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)}%`;
 
-const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
 
 <Base
@@ -57,11 +56,6 @@ const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', ye
               <p class="meta">
                 <span>{s.timeframe}</span>
                 <span>{s.market}</span>
-                {s.pausedSince ? (
-                  <span class="paused">Paused since <time datetime={s.pausedSince}>{fmt.format(new Date(`${s.pausedSince}T00:00:00Z`))}</time></span>
-                ) : (
-                  <span>Live since <time datetime={s.liveSince}>{fmt.format(new Date(`${s.liveSince}T00:00:00Z`))}</time></span>
-                )}
               </p>
               <p class="summary">{s.summary}</p>
               {bt[s.id] && (
