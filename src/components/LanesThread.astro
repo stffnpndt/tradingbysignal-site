@@ -47,18 +47,21 @@ const end = all.curve[all.curve.length - 1];
     ))}
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Backtests of today's rules from 2018 to today: four strategies as thin strands and all of them together as one brighter line.">
       {lines.map((l) => (
-        <g class="strand" data-id={l.id} style={`--i:${l.i}`}>
+        <g class="strand" data-id={l.id} data-href={`#${l.id}`} style={`--i:${l.i}`}>
           <path class="line" d={l.d} />
           <path class="hit" d={l.d} />
         </g>
       ))}
-      <path class="all" d={allPath} />
+      <g class="strand together" data-id="portfolio" data-href="#portfolio-title">
+        <path class="all" d={allPath} />
+        <path class="hit" d={allPath} />
+      </g>
     </svg>
     <span class="end" style={`top:${(Y(end[1]) / H) * 100}%`} aria-hidden="true" />
   </div>
 
   <ul class="names">
-    <li class="all-name">All together</li>
+    <li class="all-name"><a href="#portfolio-title" data-for="portfolio">All together</a></li>
     {lines.map((l) => (
       <li><a href={`#${l.id}`} data-for={l.id}>{l.name}</a></li>
     ))}
@@ -144,7 +147,9 @@ const end = all.curve[all.curve.length - 1];
     stroke-width: 2.6;
     filter: drop-shadow(0 0 6px rgba(230, 201, 136, 0.55));
     animation-delay: 900ms;
-    pointer-events: none;
+  }
+  .thread.focus .strand.together:not(.on) .all {
+    opacity: 0.45;
   }
   .thread.focus .line {
     opacity: 0.12;
@@ -186,7 +191,7 @@ const end = all.curve[all.curve.length - 1];
     background: var(--gold);
     opacity: 0.6;
   }
-  .names .all-name {
+  .names .all-name a {
     color: var(--gold-bright);
     font-weight: 600;
   }
@@ -242,14 +247,26 @@ const end = all.curve[all.curve.length - 1];
 <script>
   const fig = document.querySelector<HTMLElement>('figure.thread');
   if (fig) {
+    let armed: string | null = null;
     const strands = [...fig.querySelectorAll<SVGGElement>('.strand')];
     const names = [...fig.querySelectorAll<HTMLAnchorElement>('.names a')];
     const light = (id: string | null) => {
+      if (!id) armed = null;
       fig.classList.toggle('focus', !!id);
       strands.forEach((s) => s.classList.toggle('on', s.dataset.id === id));
       names.forEach((n) => n.classList.toggle('on', n.dataset.for === id));
     };
     strands.forEach((s) => {
+      // Mouse: a click jumps to the section. Touch: the first tap highlights
+      // the line, a second tap on the same line jumps.
+      s.addEventListener('click', (e) => {
+        const touch = (e as PointerEvent).pointerType !== 'mouse';
+        if (touch && armed !== s.dataset.id) {
+          armed = s.dataset.id ?? null;
+          return;
+        }
+        if (s.dataset.href) location.hash = s.dataset.href;
+      });
       s.addEventListener('pointerenter', () => light(s.dataset.id ?? null));
       s.addEventListener('pointerleave', (e) => (e as PointerEvent).pointerType === 'mouse' && light(null));
     });
