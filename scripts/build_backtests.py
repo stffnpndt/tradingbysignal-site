@@ -131,6 +131,7 @@ def build(key: str) -> dict:
             "liquidations": int((tr.exit_signal == "Liquidated").sum()),
             # Share of the position limit in use, averaged per week (0..1), on the
             # same weeks as the curve.
+            "maxOpen": int(eq.open_trades.max()),
             "activity": [round(float(v), 2) for v in
                          (eq.open_trades / max(int(eq.open_trades.max()), 1)).resample("W-SUN").mean()
                          .reindex(wk.index).fillna(0)],

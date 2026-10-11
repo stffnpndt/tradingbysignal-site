@@ -23,6 +23,8 @@ type Result = {
   medianHoldDays?: number;
   timeInMarket?: number;
   liquidations?: number;
+  maxOpen?: number;
+  activity?: number[];
   years: { year: number; ret: number; dd: number; partial: boolean }[];
   curve: Curve[];
 };
@@ -114,7 +116,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
           </dl>
 
           <div class="grid">
-            <div class="charts" data-curve={JSON.stringify(d.curve)} data-start={d.startCapital}>
+            <div class="charts" data-curve={JSON.stringify(d.curve)} data-start={d.startCapital} data-activity={d.activity ? JSON.stringify(d.activity) : undefined} data-max={d.maxOpen}>
               <figure class="chart">
                 <figcaption>Growth of {cap} <span>(log scale)</span></figcaption>
                 <div class="plot eq" tabindex="0" role="img" aria-label={`Growth of ${cap} from ${fmtMonth(d.start)} to ${fmtMonth(d.end)}, ending at ${money(d.startCapital * d.multiple)}. Use the arrow keys to move through the weeks.`}></div>
@@ -127,6 +129,15 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
                   <span class="item"><span class="key line"></span>Closed trades only</span>
                 </p>
               </figure>
+              {d.activity && (
+                <figure class="chart">
+                  <figcaption>Positions open <span>(weekly average, limit {d.maxOpen})</span></figcaption>
+                  <div class="plot pos" aria-hidden="true"></div>
+                  {d.timeInMarket !== undefined && (
+                    <p class="legend">In the market {Math.round(d.timeInMarket * 100)}% of the time, waiting on the sidelines the rest.</p>
+                  )}
+                </figure>
+              )}
               <div class="tip" hidden></div>
             </div>
 
@@ -257,6 +268,13 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
   }
   .plot.dd {
     height: 150px;
+  }
+  .plot.pos {
+    height: 90px;
+  }
+  .plot :global(.bars) {
+    fill: var(--gold);
+    opacity: 0.8;
   }
   .plot:focus-visible {
     box-shadow: 0 0 0 1px var(--gold);
@@ -533,6 +551,39 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     el('path', { class: 'line', d: 'M' + data.map((p) => `${X(p[0]).toFixed(1)},${Y2(p[2]).toFixed(1)}`).join('L') }, s2);
     const cross2 = el('line', { class: 'cross', y1: 4, y2: H2 - bot, visibility: 'hidden' }, s2);
 
+    // --- Positions open (optional) --------------------------------------------
+    const posBox = box.querySelector<HTMLElement>('.plot.pos');
+    const act: number[] = JSON.parse(box.dataset.activity || '[]');
+    const maxOpen = Number(box.dataset.max || 1);
+    let cross3: Element | null = null;
+    if (posBox && act.length === data.length) {
+      const H3 = posBox.clientHeight;
+      const Y3 = (v: number) => 4 + (1 - v / maxOpen) * (H3 - 4 - bot);
+      posBox.replaceChildren();
+      const s3 = el('svg', { viewBox: `0 0 ${W} ${H3}` }, posBox);
+      const ticks3 = maxOpen >= 4 ? [0, maxOpen / 2, maxOpen] : [0, maxOpen];
+      for (const v of ticks3) {
+        el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y3(v), y2: Y3(v) }, s3);
+        const tx = el('text', { class: 'tick', x: m.l - 8, y: Y3(v) + 4, 'text-anchor': 'end' }, s3);
+        tx.textContent = String(v);
+      }
+      years.forEach((y, i) => {
+        if (i % step) return;
+        const tx = el('text', { class: 'tick', x: X(`${y}-01-01`), y: H3 - 4, 'text-anchor': 'middle' }, s3);
+        tx.textContent = String(y);
+      });
+      const wk = data.length > 1 ? (X(data[data.length - 1][0]) - X(data[0][0])) / (data.length - 1) : 4;
+      let d = '';
+      act.forEach((a, i) => {
+        if (a <= 0) return;
+        const x = X(data[i][0]) - wk;
+        const y = Y3(a * maxOpen);
+        d += `M${x.toFixed(1)},${Y3(0).toFixed(1)}V${y.toFixed(1)}h${(wk + 0.4).toFixed(1)}V${Y3(0).toFixed(1)}Z`;
+      });
+      el('path', { class: 'bars', d }, s3);
+      cross3 = el('line', { class: 'cross', y1: 4, y2: H3 - bot, visibility: 'hidden' }, s3);
+    }
+
     // --- Crosshair and tooltip ---------------------------------------------
     const xs = data.map((p) => X(p[0]));
     let cur = -1;
@@ -540,7 +591,8 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
       cur = Math.max(0, Math.min(data.length - 1, i));
       const p = data[cur];
       const x = xs[cur];
-      for (const c of [cross1, cross2]) {
+      for (const c of [cross1, cross2, cross3]) {
+        if (!c) continue;
         c.setAttribute('x1', String(x));
         c.setAttribute('x2', String(x));
         c.setAttribute('visibility', 'visible');
@@ -565,6 +617,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
         return r;
       };
       tip.append(head, val, row('Drawdown, closed', pct(p[2])), row('Incl. open trades', pct(p[3])));
+      if (cross3) tip.append(row('Positions open', `${(act[cur] * maxOpen).toFixed(1)} of ${maxOpen}`));
       tip.hidden = false;
       const tw = tip.offsetWidth;
       const left = x + 14 + tw > box.clientWidth ? x - 14 - tw : x + 14;
@@ -572,7 +625,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
       tip.style.top = `28px`;
     };
     const hide = () => {
-      for (const c of [cross1, cross2, dot]) c.setAttribute('visibility', 'hidden');
+      for (const c of [cross1, cross2, cross3, dot]) c?.setAttribute('visibility', 'hidden');
       tip.hidden = true;
     };
     const nearest = (clientX: number) => {
@@ -585,7 +638,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     // Mouse: follow the pointer, hide on leave. Touch: tap or drag sideways to
     // read a week (vertical swipes still scroll the page); the readout stays
     // until the reader taps somewhere else.
-    for (const p of [eqBox, ddBox]) {
+    for (const p of [eqBox, ddBox, posBox].filter((b): b is HTMLElement => !!b)) {
       p.onpointerdown = (e) => show(nearest(e.clientX));
       p.onpointermove = (e) => {
         if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) show(nearest(e.clientX));
