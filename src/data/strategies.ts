@@ -50,7 +50,7 @@ const all: Strategy[] = [
     market: 'Crypto futures, broad universe',
     liveSince: '2026-02-24',
     summary:
-      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually at the close of the same day. Up to four positions at a time.',
+      'Buys sharp sell-offs that are large relative to the coin’s own volatility (ATR) and sells into the rebound, usually at the close of the same day. Up to eight positions at a time.',
     glyph: 'atr',
     details: {
       tagline:
@@ -60,7 +60,7 @@ const all: Strategy[] = [
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: '2x, isolated margin' },
-        { label: 'Positions', value: 'Up to four, equal size' },
+        { label: 'Positions', value: 'Up to eight, equal size' },
         { label: 'Typical holding', value: 'Less than a day' },
         { label: 'Live since', value: '24 February 2026' },
       ],
@@ -109,7 +109,7 @@ const all: Strategy[] = [
       },
       risk: [
         'Moderate leverage of 2x on futures. Every position uses isolated margin, so a single trade can never draw on the rest of the account.',
-        'Capital is split into four equal slots, so a single coin is never more than a quarter of the strategy.',
+        'Capital is split into eight small, equal slots, so a single coin is never more than an eighth of the strategy.',
         'Short holding times keep exposure low: most of the time the strategy holds nothing and waits.',
         'It buys into falling prices on purpose. When a sell-off turns into a crash, several positions can lose at once, and the emergency stop sits far below the entry.',
       ],

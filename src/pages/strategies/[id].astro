@@ -34,7 +34,7 @@ const Diagram = diagrams[s.id];
 const top30 = 'Coins: the 30 largest by market value at the start of each year.';
 const backtestRuns: Record<string, { key: string; label: string; setup: string }[]> = {
   'tf-ichimoku': [{ key: 'tf-ichimoku', label: 'Bitcoin and Ether', setup: 'Bitcoin and Ether, one position each, 2x leverage.' }],
-  'mr-atr': [{ key: 'mr-atr', label: 'Coins', setup: `${top30} Up to four positions, 2x leverage.` }],
+  'mr-atr': [{ key: 'mr-atr', label: 'Coins', setup: `${top30} Up to eight positions, 2x leverage.` }],
   'mr-rsi': [{ key: 'mr-rsi', label: 'Coins', setup: `${top30} Up to four positions of three tranches, 2x leverage.` }],
   'rsi-red-legs': [
     { key: 'rsi-red-legs', label: 'Coins', setup: `${top30} Up to eight ladders of five legs, 2x leverage.` },

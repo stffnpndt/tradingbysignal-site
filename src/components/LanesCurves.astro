@@ -1,10 +1,11 @@
 ---
-// Hero rows, variant "curves": one row per strategy with a small growth curve
-// of today's rules from the backtest, plus the combined portfolio.
+// Hero rows: one row per strategy with a small growth curve of today's rules
+// from the backtest, plus the combined portfolio. Deliberately without figures;
+// the numbers live in the backtest sections further down.
 import backtests from '../data/backtests.json';
 import { strategies } from '../data/strategies';
 
-type B = { cagr: number; maxDdIntra: number; curve: [string, number, number, number][] };
+type B = { curve: [string, number, number, number][] };
 const bt = backtests as unknown as Record<string, B>;
 
 const rows = [
@@ -22,7 +23,6 @@ for (let y = 2018; y <= new Date(t1).getUTCFullYear(); y++) {
   if (x >= 0 && x <= 88) years.push({ label: String(y), x, minor: y % 2 === 1 });
 }
 
-const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)}%`;
 
 const lines = rows.map((r, i) => {
   const logs = r.d.curve.map((p) => Math.log(p[1]));
@@ -50,7 +50,6 @@ const lines = rows.map((r, i) => {
       <li class:list={['row', { all: l.all }]} style={`--i:${l.i}`}>
         <a class="name" href={l.href}>
           {l.name}
-          <span class="stat">{pct(l.d.cagr)} a year · worst {pct(l.d.maxDdIntra)}</span>
         </a>
         <div class="track">
           {years.map((y) => (
@@ -66,7 +65,7 @@ const lines = rows.map((r, i) => {
   </ol>
 
   <figcaption id="lanes-caption">
-    Backtest of today’s rules from 2018 to today, each line on its own log scale. More on each strategy’s page.
+    Backtests of today’s rules, 2018 to today. Each line has its own scale; the figures are on each strategy’s page.
   </figcaption>
 </figure>
 
@@ -112,7 +111,7 @@ const lines = rows.map((r, i) => {
     display: grid;
     grid-template-columns: var(--label-w) 1fr;
     align-items: center;
-    min-height: 3.75rem;
+    min-height: 3.5rem;
     border-bottom: 1px solid var(--rule);
     transition: background-color 200ms;
   }
@@ -134,17 +133,12 @@ const lines = rows.map((r, i) => {
   .name:hover {
     color: var(--gold-bright);
   }
-  .stat {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--muted);
-  }
   .all .name {
     color: var(--gold-bright);
   }
   .track {
     position: relative;
-    height: 3.75rem;
+    height: 3.5rem;
   }
   .gridline {
     position: absolute;
