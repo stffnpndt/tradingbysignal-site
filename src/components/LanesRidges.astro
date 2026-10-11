@@ -1,0 +1,179 @@
+---
+// Hero chart "ridgelines": each strategy's drawdowns (open trades at their
+// worst) hang below its own waterline, stacked and overlapping, on one common
+// scale. The bottom row is all strategies together. No figures.
+import backtests from '../data/backtests.json';
+import { strategies } from '../data/strategies';
+
+type B = { curve: [string, number, number, number][] };
+const bt = backtests as unknown as Record<string, B>;
+
+const rows = [
+  ...strategies.filter((s) => bt[s.id]).map((s) => ({ id: s.id, name: s.name, d: bt[s.id], all: false })),
+  { id: 'portfolio', name: 'All together', d: bt.portfolio, all: true },
+];
+
+const t0 = Date.parse('2018-01-01');
+const t1 = Math.max(...rows.map((r) => Date.parse(r.d.curve[r.d.curve.length - 1][0])));
+const W = 1000;
+const deepest = Math.min(...rows.flatMap((r) => r.d.curve.map((p) => p[3])));
+const ROW = 64; // spacing between baselines
+const AMP = 110; // height of the deepest drawdown; larger than ROW so ridges overlap
+const TOP = 22;
+const deepestLast = Math.min(...rows[rows.length - 1].d.curve.map((p) => p[3]));
+// Only leave as much room below the last row as its own deepest dip needs.
+const H = TOP + ROW * (rows.length - 1) + Math.max(ROW * 0.6, AMP * (deepestLast / deepest)) + 10;
+const X = (s: string) => ((Date.parse(s) - t0) / (t1 - t0)) * W;
+
+const ridges = rows.map((r, i) => {
+  const base = TOP + ROW * i;
+  const pts = r.d.curve.map((p) => [X(p[0]), base + (p[3] / deepest) * AMP] as const);
+  const line = 'M' + pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L');
+  const fill = `${line}L${pts[pts.length - 1][0].toFixed(1)},${base}L${pts[0][0].toFixed(1)},${base}Z`;
+  return { ...r, i, base, line, fill, labelTop: ((base - 20) / H) * 100 };
+});
+// Paint bottom rows first, so each row's fill covers the ones below it.
+const painted = [...ridges].reverse();
+
+const years: { label: string; x: number; minor: boolean }[] = [];
+for (let y = 2018; y <= new Date(t1).getUTCFullYear(); y++) {
+  const x = (X(`${y}-01-01`) / W) * 100;
+  if (x >= 0 && x <= 88) years.push({ label: String(y), x, minor: y % 2 === 1 });
+}
+---
+
+<figure class="ridges" aria-labelledby="ridges-caption">
+  <div class="axis" aria-hidden="true">
+    {years.map((y) => (
+      <span class:list={['year', { edge: y.x < 2, minor: y.minor }]} style={`left:${y.x}%`}>{y.label}</span>
+    ))}
+    <span class="today" style="left:100%">Today</span>
+  </div>
+
+  <div class="plot" style={`aspect-ratio:${W} / ${H}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Drawdowns of each strategy in the backtests since 2018, drawn as stacked ridges; all strategies together at the bottom.">
+      {painted.map((r) => (
+        <g class:list={['ridge', { all: r.all }]} style={`--i:${r.i}`}>
+          <path class="fill" d={r.fill} />
+          <path class="line" d={r.line} />
+          <line class="base" x1="0" x2={W} y1={r.base} y2={r.base} />
+        </g>
+      ))}
+    </svg>
+    {ridges.map((r) => (
+      <a class:list={['label', { all: r.all }]} href={r.all ? '#portfolio-title' : `#${r.id}`} style={`top:${r.labelTop}%`}>{r.name}</a>
+    ))}
+  </div>
+
+  <figcaption id="ridges-caption">
+    How far each strategy fell below its previous high in the backtests of today’s rules, 2018 to today, on one common scale. Flat means calm; each dip is a hard stretch.
+  </figcaption>
+</figure>
+
+<style>
+  .ridges {
+    margin: 0;
+  }
+  .axis {
+    position: relative;
+    height: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .year,
+  .today {
+    position: absolute;
+    top: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+  }
+  .year.edge {
+    transform: none;
+  }
+  .today {
+    transform: translateX(-100%);
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .plot {
+    position: relative;
+    width: 100%;
+  }
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .fill {
+    fill: var(--stone);
+  }
+  .line {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.3;
+    opacity: 0.75;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    animation: draw 1.8s cubic-bezier(0.45, 0.05, 0.25, 1) both;
+    animation-delay: calc(var(--i) * 160ms + 200ms);
+  }
+  .base {
+    stroke: var(--rule);
+    vector-effect: non-scaling-stroke;
+  }
+  .all .line {
+    stroke: var(--gold-bright);
+    stroke-width: 2.2;
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(230, 201, 136, 0.5));
+  }
+  .ridge:hover .line {
+    opacity: 1;
+    stroke: var(--gold-bright);
+  }
+  .label {
+    position: absolute;
+    left: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--on-dark);
+    text-decoration: none;
+    text-shadow: 0 0 6px var(--stone), 0 0 6px var(--stone);
+  }
+  .label.all {
+    color: var(--gold-bright);
+  }
+  .label:hover {
+    color: var(--gold-bright);
+  }
+  figcaption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  @keyframes draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .line {
+      animation: none;
+    }
+  }
+  @media (max-width: 40rem) {
+    .year.minor {
+      display: none;
+    }
+    .plot {
+      aspect-ratio: auto !important;
+      height: 21rem;
+    }
+  }
+</style>
