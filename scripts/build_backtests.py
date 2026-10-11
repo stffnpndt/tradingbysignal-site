@@ -129,12 +129,10 @@ def build(key: str) -> dict:
             "medianHoldDays": float((tr.exit - tr.start).dt.days.median()),
             "timeInMarket": round(float((eq.open_trades > 0).mean()), 4),
             "liquidations": int((tr.exit_signal == "Liquidated").sum()),
-            # Share of the position limit in use, averaged per week (0..1), on the
-            # same weeks as the curve.
             "maxOpen": int(eq.open_trades.max()),
-            "activity": [round(float(v), 2) for v in
-                         (eq.open_trades / max(int(eq.open_trades.max()), 1)).resample("W-SUN").mean()
-                         .reindex(wk.index).fillna(0)],
+            # Most positions open at any one time in each week, on the same weeks as the curve.
+            "positions": [int(v) for v in eq.open_trades.resample("W-SUN").max()
+                          .reindex(wk.index).fillna(0)],
         })
     return out
 

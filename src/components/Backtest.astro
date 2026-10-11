@@ -24,7 +24,7 @@ type Result = {
   timeInMarket?: number;
   liquidations?: number;
   maxOpen?: number;
-  activity?: number[];
+  positions?: number[];
   years: { year: number; ret: number; dd: number; partial: boolean }[];
   curve: Curve[];
 };
@@ -116,7 +116,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
           </dl>
 
           <div class="grid">
-            <div class="charts" data-curve={JSON.stringify(d.curve)} data-start={d.startCapital} data-activity={d.activity ? JSON.stringify(d.activity) : undefined} data-max={d.maxOpen}>
+            <div class="charts" data-curve={JSON.stringify(d.curve)} data-start={d.startCapital} data-positions={d.positions ? JSON.stringify(d.positions) : undefined} data-max={d.maxOpen}>
               <figure class="chart">
                 <figcaption>Growth of {cap} <span>(log scale)</span></figcaption>
                 <div class="plot eq" tabindex="0" role="img" aria-label={`Growth of ${cap} from ${fmtMonth(d.start)} to ${fmtMonth(d.end)}, ending at ${money(d.startCapital * d.multiple)}. Use the arrow keys to move through the weeks.`}></div>
@@ -129,9 +129,9 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
                   <span class="item"><span class="key line"></span>Closed trades only</span>
                 </p>
               </figure>
-              {d.activity && (
+              {d.positions && (
                 <figure class="chart">
-                  <figcaption>Positions open <span>(weekly average, limit {d.maxOpen})</span></figcaption>
+                  <figcaption>Positions open <span>(most at once in each week, limit {d.maxOpen})</span></figcaption>
                   <div class="plot pos" aria-hidden="true"></div>
                   {d.timeInMarket !== undefined && (
                     <p class="legend">In the market {Math.round(d.timeInMarket * 100)}% of the time, waiting on the sidelines the rest.</p>
@@ -553,10 +553,10 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
 
     // --- Positions open (optional) --------------------------------------------
     const posBox = box.querySelector<HTMLElement>('.plot.pos');
-    const act: number[] = JSON.parse(box.dataset.activity || '[]');
+    const pos: number[] = JSON.parse(box.dataset.positions || '[]');
     const maxOpen = Number(box.dataset.max || 1);
     let cross3: Element | null = null;
-    if (posBox && act.length === data.length) {
+    if (posBox && pos.length === data.length) {
       const H3 = posBox.clientHeight;
       const Y3 = (v: number) => 4 + (1 - v / maxOpen) * (H3 - 4 - bot);
       posBox.replaceChildren();
@@ -574,10 +574,10 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
       });
       const wk = data.length > 1 ? (X(data[data.length - 1][0]) - X(data[0][0])) / (data.length - 1) : 4;
       let d = '';
-      act.forEach((a, i) => {
-        if (a <= 0) return;
+      pos.forEach((n, i) => {
+        if (n <= 0) return;
         const x = X(data[i][0]) - wk;
-        const y = Y3(a * maxOpen);
+        const y = Y3(n);
         d += `M${x.toFixed(1)},${Y3(0).toFixed(1)}V${y.toFixed(1)}h${(wk + 0.4).toFixed(1)}V${Y3(0).toFixed(1)}Z`;
       });
       el('path', { class: 'bars', d }, s3);
@@ -617,7 +617,7 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
         return r;
       };
       tip.append(head, val, row('Drawdown, closed', pct(p[2])), row('Incl. open trades', pct(p[3])));
-      if (cross3) tip.append(row('Positions open', `${(act[cur] * maxOpen).toFixed(1)} of ${maxOpen}`));
+      if (cross3) tip.append(row('Positions open, max', `${pos[cur]} of ${maxOpen}`));
       tip.hidden = false;
       const tw = tip.offsetWidth;
       const left = x + 14 + tw > box.clientWidth ? x - 14 - tw : x + 14;
