@@ -1,0 +1,238 @@
+---
+// Hero rows, variant "curves": one row per strategy with a small growth curve
+// of today's rules from the backtest, plus the combined portfolio.
+import backtests from '../data/backtests.json';
+import { strategies } from '../data/strategies';
+
+type B = { cagr: number; maxDdIntra: number; curve: [string, number, number, number][] };
+const bt = backtests as unknown as Record<string, B>;
+
+const rows = [
+  ...strategies.filter((s) => bt[s.id]).map((s) => ({ id: s.id, name: s.name, href: `#${s.id}`, d: bt[s.id], all: false })),
+  { id: 'portfolio', name: 'All together', href: '#portfolio-title', d: bt.portfolio, all: true },
+].filter((r) => r.d);
+
+const t0 = Date.parse('2018-01-01');
+const t1 = Math.max(...rows.map((r) => Date.parse(r.d.curve[r.d.curve.length - 1][0])));
+const X = (s: string) => ((Date.parse(s) - t0) / (t1 - t0)) * 1000;
+
+const years: { label: string; x: number; minor: boolean }[] = [];
+for (let y = 2018; y <= new Date(t1).getUTCFullYear(); y++) {
+  const x = (X(`${y}-01-01`) / 1000) * 100;
+  if (x >= 0 && x <= 88) years.push({ label: String(y), x, minor: y % 2 === 1 });
+}
+
+const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100)}%`;
+
+const lines = rows.map((r, i) => {
+  const logs = r.d.curve.map((p) => Math.log(p[1]));
+  const lo = Math.min(...logs);
+  const hi = Math.max(...logs);
+  const Y = (v: number) => 88 - ((v - lo) / (hi - lo || 1)) * 76;
+  const d = 'M' + r.d.curve.map((p, j) => `${X(p[0]).toFixed(1)},${Y(logs[j]).toFixed(1)}`).join('L');
+  const last = r.d.curve[r.d.curve.length - 1];
+  return { ...r, i, path: d, endY: Y(logs[logs.length - 1]), endX: (X(last[0]) / 1000) * 100 };
+});
+---
+
+<figure class="lanes" aria-labelledby="lanes-caption">
+  <div class="axis" aria-hidden="true">
+    <div class="axis-track">
+      {years.map((y) => (
+        <span class:list={['year', { edge: y.x < 2, minor: y.minor }]} style={`left:${y.x}%`}>{y.label}</span>
+      ))}
+      <span class="today" style="left:100%">Today</span>
+    </div>
+  </div>
+
+  <ol class="rows">
+    {lines.map((l) => (
+      <li class:list={['row', { all: l.all }]} style={`--i:${l.i}`}>
+        <a class="name" href={l.href}>
+          {l.name}
+          <span class="stat">{pct(l.d.cagr)} a year · worst {pct(l.d.maxDdIntra)}</span>
+        </a>
+        <div class="track">
+          {years.map((y) => (
+            <span class="gridline" style={`left:${y.x}%`} aria-hidden="true" />
+          ))}
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="curve" d={l.path} pathLength="1" />
+          </svg>
+          <span class="end" style={`left:${l.endX}%;top:${l.endY}%`} aria-hidden="true" />
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  <figcaption id="lanes-caption">
+    Backtest of today’s rules from 2018 to today, each line on its own log scale. More on each strategy’s page.
+  </figcaption>
+</figure>
+
+<style>
+  .lanes {
+    margin: 0;
+    --label-w: 15rem;
+  }
+  .axis {
+    display: grid;
+    grid-template-columns: var(--label-w) 1fr;
+    margin-bottom: 0.5rem;
+  }
+  .axis-track {
+    grid-column: 2;
+    position: relative;
+    height: 1.25rem;
+  }
+  .year,
+  .today {
+    position: absolute;
+    top: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+  }
+  .year.edge {
+    transform: none;
+  }
+  .today {
+    transform: translateX(-100%);
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: var(--label-w) 1fr;
+    align-items: center;
+    min-height: 3.75rem;
+    border-bottom: 1px solid var(--rule);
+    transition: background-color 200ms;
+  }
+  .row:hover {
+    background: rgba(231, 231, 229, 0.03);
+  }
+  .row.all {
+    border-top: 1px solid rgba(195, 160, 90, 0.45);
+  }
+  .name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-weight: 500;
+    color: inherit;
+    text-decoration: none;
+    padding-right: 1rem;
+  }
+  .name:hover {
+    color: var(--gold-bright);
+  }
+  .stat {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .all .name {
+    color: var(--gold-bright);
+  }
+  .track {
+    position: relative;
+    height: 3.75rem;
+  }
+  .gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .curve {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.6;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    filter: drop-shadow(0 0 4px rgba(230, 201, 136, 0.35));
+    animation: draw 1.6s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+    animation-delay: calc(var(--i) * 140ms + 150ms);
+  }
+  .all .curve {
+    stroke: var(--gold-bright);
+    stroke-width: 2.2;
+  }
+  .end {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: var(--gold-bright);
+    box-shadow: 0 0 0 4px var(--stone), 0 0 12px 3px rgba(230, 201, 136, 0.5);
+    opacity: 0;
+    animation: pop 300ms ease-out forwards;
+    animation-delay: calc(var(--i) * 140ms + 1.6s);
+  }
+  figcaption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes pop {
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .curve,
+    .end {
+      animation: none;
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+  @media (max-width: 40rem) {
+    .lanes {
+      --label-w: 0px;
+    }
+    .axis {
+      grid-template-columns: 1fr;
+    }
+    .axis-track {
+      grid-column: 1;
+    }
+    .row {
+      grid-template-columns: 1fr;
+      padding-top: 0.75rem;
+    }
+    .name {
+      padding: 0;
+    }
+    .year.minor {
+      display: none;
+    }
+    .track {
+      height: 3rem;
+    }
+  }
+</style>
