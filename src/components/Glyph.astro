@@ -142,7 +142,7 @@ const { kind, label } = Astro.props;
 </style>
 
 <script>
-  // Draw each diagram once it scrolls into view; replay when its row is hovered.
+  // Draw each diagram once it scrolls into view; replay when its row is hovered with a mouse.
   const glyphs = document.querySelectorAll<SVGSVGElement>('svg.glyph');
   const io = new IntersectionObserver(
     (entries) => {
@@ -158,8 +158,14 @@ const { kind, label } = Astro.props;
   glyphs.forEach((g) => {
     io.observe(g);
     const row = g.closest('[data-replay]');
-    row?.addEventListener('pointerenter', () => {
-      if (!g.classList.contains('drawn')) return;
+    // Mouse only: on touch screens a tap would otherwise replay it every time.
+    // At most once every few seconds, so moving the mouse across rows stays calm.
+    let last = 0;
+    row?.addEventListener('pointerenter', (e) => {
+      if ((e as PointerEvent).pointerType !== 'mouse' || !g.classList.contains('drawn')) return;
+      const now = Date.now();
+      if (now - last < 4000) return;
+      last = now;
       g.classList.remove('drawn');
       void g.getBoundingClientRect(); // restart the transition
       g.classList.add('drawn');
