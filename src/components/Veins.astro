@@ -1,8 +1,9 @@
 ---
-// Animated background for the hero: gold price paths that grow across dark
-// stone like kintsugi cracks, branch now and then, and slowly fade to make
-// room for new ones. Near the pointer they brighten and a fine crosshair
-// follows it. With reduced motion, a still set is drawn once.
+// Animated background for the hero: faint gold candlestick charts that print
+// across dark stone one candle at a time, the newest candle still moving while
+// it forms, then slowly fade to make room for new ones. Near the pointer they
+// brighten and a fine crosshair follows it. With reduced motion, a still set
+// is drawn once.
 ---
 
 <canvas class="veins" aria-hidden="true"></canvas>
@@ -19,15 +20,16 @@
 </style>
 
 <script>
-  type Vein = {
-    pts: { x: number; y: number }[];
-    shown: number; // points drawn so far
-    speed: number; // points added per frame
-    width: number;
+  type Candle = { x: number; o: number; h: number; l: number; c: number };
+  type Stream = {
+    candles: Candle[];
+    shown: number; // candles printed so far; the fraction is the forming candle
+    speed: number; // candles per frame
+    body: number; // body width in px
     born: number;
-    life: number; // ms until fully faded, after it finished growing
+    life: number; // ms until fully faded, after it finished
     doneAt: number | null;
-    depth: number; // 0 = trunk, 1 = branch
+    alpha: number; // overall strength, so some charts sit further back
   };
 
   const canvas = document.querySelector<HTMLCanvasElement>('canvas.veins');
@@ -39,7 +41,7 @@
     let W = 0;
     let H = 0;
     let dpr = 1;
-    let veins: Vein[] = [];
+    let streams: Stream[] = [];
     let pointer: { x: number; y: number } | null = null;
     let running = false;
     let raf = 0;
@@ -61,91 +63,112 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    // A price-like random walk with volatility clusters.
-    const makePath = (x0: number, y0: number, len: number, step: number) => {
-      const pts = [{ x: x0, y: y0 }];
-      let vol = 0.6 + rand() * 1.4;
-      let drift = (rand() - 0.5) * 0.25;
-      let x = x0;
+    // Price-like candles: a random walk with volatility clusters and trends.
+    const makeCandles = (x0: number, y0: number, step: number) => {
+      const out: Candle[] = [];
+      let vol = 0.8 + rand() * 1.2;
+      let drift = (rand() - 0.5) * 0.35;
       let y = y0;
-      for (let i = 0; i < len; i++) {
-        if (rand() < 0.04) vol = 0.5 + rand() * 2.6; // regime change
-        if (rand() < 0.02) drift = (rand() - 0.5) * 0.5;
-        x += step;
-        y += drift * step + (rand() - 0.5) * vol * step * 1.1;
-        y = Math.max(H * 0.04, Math.min(H * 0.96, y));
-        pts.push({ x, y });
-        if (x > W + 20) break;
+      for (let x = x0; x < W + step; x += step) {
+        if (rand() < 0.05) vol = 0.6 + rand() * 2.4; // regime change
+        if (rand() < 0.04) drift = (rand() - 0.5) * 0.6;
+        const o = y;
+        let c = o + drift * step + (rand() - 0.5) * vol * step * 1.4;
+        c = Math.max(H * 0.06, Math.min(H * 0.94, c));
+        const h = Math.min(o, c) - rand() * vol * step * 0.7;
+        const l = Math.max(o, c) + rand() * vol * step * 0.7;
+        out.push({ x, o, h, l, c });
+        y = c;
       }
-      return pts;
+      return out;
     };
 
-    const spawn = (now: number, at?: { x: number; y: number; depth: number }) => {
-      const depth = at ? at.depth : 0;
-      const step = depth ? 5 : 7;
-      const x0 = at ? at.x : -10;
-      const y0 = at ? at.y : H * (0.15 + rand() * 0.75);
-      const len = depth ? 12 + Math.floor(rand() * 40) : 1000;
-      veins.push({
-        pts: makePath(x0, y0, len, step),
-        shown: 1,
-        speed: depth ? 0.5 : 0.55 + rand() * 0.45,
-        width: depth ? 0.6 + rand() * 0.5 : 0.9 + rand() * 0.9,
+    const spawn = (now: number) => {
+      const step = W < 640 ? 8 : 11;
+      streams.push({
+        candles: makeCandles(-step, H * (0.15 + rand() * 0.7), step),
+        shown: 0,
+        speed: 0.05 + rand() * 0.04,
+        body: Math.max(3, step * 0.55),
         born: now,
-        life: 9000 + rand() * 8000,
+        life: 9000 + rand() * 7000,
         doneAt: null,
-        depth,
+        alpha: 0.55 + rand() * 0.45,
       });
     };
 
-    const alphaOf = (v: Vein, now: number) => {
-      const fadeIn = Math.min(1, (now - v.born) / 600);
-      if (v.doneAt === null) return fadeIn;
-      return Math.max(0, 1 - (now - v.doneAt) / v.life) * fadeIn;
+    const alphaOf = (s: Stream, now: number) => {
+      const fadeIn = Math.min(1, (now - s.born) / 800);
+      if (s.doneAt === null) return fadeIn;
+      return Math.max(0, 1 - (now - s.doneAt) / s.life) * fadeIn;
+    };
+
+    const drawCandle = (k: Candle, body: number, a: number, boost: number) => {
+      const up = k.c < k.o; // canvas y grows downward
+      const top = Math.min(k.o, k.c);
+      const height = Math.max(1, Math.abs(k.c - k.o));
+      const gold = boost > 0.3 ? '230, 201, 136' : '195, 160, 90';
+      const strength = (0.45 + 0.55 * boost) * a;
+
+      ctx.strokeStyle = `rgba(${gold}, ${strength * 0.8})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(k.x + 0.5, k.h);
+      ctx.lineTo(k.x + 0.5, k.l);
+      ctx.stroke();
+
+      if (up) {
+        ctx.fillStyle = `rgba(27, 28, 30, ${Math.min(1, a * 1.5)})`;
+        ctx.fillRect(k.x - body / 2, top, body, height);
+        ctx.strokeStyle = `rgba(${gold}, ${strength})`;
+        ctx.strokeRect(k.x - body / 2 + 0.5, top + 0.5, body - 1, Math.max(0.5, height - 1));
+      } else {
+        ctx.fillStyle = `rgba(${gold}, ${strength * 0.7})`;
+        ctx.fillRect(k.x - body / 2, top, body, height);
+      }
     };
 
     const draw = (now: number) => {
       ctx.clearRect(0, 0, W, H);
 
-      for (const v of veins) {
-        const a = alphaOf(v, now);
+      for (const s of streams) {
+        const a = alphaOf(s, now) * s.alpha;
         if (a <= 0) continue;
-        const n = Math.floor(v.shown);
-        if (n < 2) continue;
+        const n = Math.min(s.candles.length, Math.floor(s.shown));
+        const frac = s.shown - n;
 
-        // Brighten near the pointer.
-        let boost = 0;
-        if (pointer) {
-          let best = Infinity;
-          for (let i = 0; i < n; i += 4) {
-            const p = v.pts[i];
-            const d = (p.x - pointer.x) ** 2 + (p.y - pointer.y) ** 2;
-            if (d < best) best = d;
+        for (let i = 0; i <= n && i < s.candles.length; i++) {
+          let k = s.candles[i];
+          if (i === n) {
+            // The forming candle: close wanders toward its final value,
+            // wicks grow as the period runs.
+            if (s.doneAt !== null || frac <= 0) continue;
+            const wobble = Math.sin(now / 90 + i) * (k.l - k.h) * 0.12 * (1 - frac);
+            const c = k.o + (k.c - k.o) * frac + wobble;
+            k = {
+              x: k.x,
+              o: k.o,
+              c,
+              h: Math.min(k.o, c) - (Math.min(k.o, k.c) - k.h) * frac,
+              l: Math.max(k.o, c) + (k.l - Math.max(k.o, k.c)) * frac,
+            };
           }
-          boost = Math.max(0, 1 - Math.sqrt(best) / 180);
+          let boost = 0;
+          if (pointer) {
+            const d = Math.hypot(k.x - pointer.x, (k.o + k.c) / 2 - pointer.y);
+            boost = Math.max(0, 1 - d / 160);
+          }
+          drawCandle(k, s.body, a, boost);
         }
 
-        ctx.beginPath();
-        ctx.moveTo(v.pts[0].x, v.pts[0].y);
-        for (let i = 1; i < n; i++) ctx.lineTo(v.pts[i].x, v.pts[i].y);
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-
-        // Soft glow, then the crisp vein on top.
-        ctx.strokeStyle = `rgba(230, 201, 136, ${0.12 * a + 0.2 * boost * a})`;
-        ctx.lineWidth = v.width + 5;
-        ctx.stroke();
-        ctx.strokeStyle = `rgba(${boost > 0.3 ? '230, 201, 136' : '195, 160, 90'}, ${(0.55 + 0.45 * boost) * a})`;
-        ctx.lineWidth = v.width;
-        ctx.stroke();
-
-        // Bright tip while growing.
-        if (v.doneAt === null) {
-          const t = v.pts[n - 1];
-          ctx.fillStyle = `rgba(246, 226, 176, ${0.9 * a})`;
-          ctx.beginPath();
-          ctx.arc(t.x, t.y, v.depth ? 1.2 : 1.8, 0, Math.PI * 2);
-          ctx.fill();
+        // A soft glow on the forming candle.
+        if (s.doneAt === null && n < s.candles.length) {
+          const k = s.candles[n];
+          const g = ctx.createRadialGradient(k.x, k.o, 0, k.x, k.o, 18);
+          g.addColorStop(0, `rgba(246, 226, 176, ${0.35 * a})`);
+          g.addColorStop(1, 'rgba(246, 226, 176, 0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(k.x - 18, k.o - 18, 36, 36);
         }
       }
 
@@ -164,22 +187,15 @@
     };
 
     const tick = (now: number) => {
-      // Grow, branch, retire.
-      for (const v of [...veins]) {
-        if (v.doneAt !== null) continue;
-        const before = Math.floor(v.shown);
-        v.shown = Math.min(v.pts.length, v.shown + v.speed);
-        const after = Math.floor(v.shown);
-        if (v.depth === 0 && after > before && rand() < 0.02 * (after - before)) {
-          const p = v.pts[after - 1];
-          spawn(now, { x: p.x, y: p.y, depth: 1 });
-        }
-        if (v.shown >= v.pts.length) v.doneAt = now;
+      for (const s of streams) {
+        if (s.doneAt !== null) continue;
+        s.shown = Math.min(s.candles.length, s.shown + s.speed);
+        if (s.shown >= s.candles.length) s.doneAt = now;
       }
-      veins = veins.filter((v) => alphaOf(v, now) > 0 || v.doneAt === null);
+      streams = streams.filter((s) => s.doneAt === null || alphaOf(s, now) > 0);
 
-      const trunks = veins.filter((v) => v.depth === 0).length;
-      if (trunks < 5 && now - lastSpawn > 2600) {
+      const live = streams.filter((s) => s.doneAt === null).length;
+      if (live < 3 && now - lastSpawn > 3500) {
         spawn(now);
         lastSpawn = now;
       }
@@ -199,19 +215,13 @@
     };
 
     const drawStill = () => {
-      veins = [];
+      streams = [];
       seed = 7;
       const now = performance.now();
-      for (let i = 0; i < 6; i++) spawn(now);
-      for (const v of [...veins]) {
-        for (let i = 4; i < v.pts.length; i += 50) {
-          if (rand() < 0.5) spawn(now, { x: v.pts[i].x, y: v.pts[i].y, depth: 1 });
-        }
-      }
-      for (const v of veins) {
-        v.shown = v.pts.length;
-        v.born = now - 1000;
-        v.doneAt = null;
+      for (let i = 0; i < 3; i++) spawn(now);
+      for (const s of streams) {
+        s.shown = s.candles.length;
+        s.born = now - 1000;
       }
       draw(now + 1000);
     };
@@ -221,13 +231,13 @@
     if (reduce) {
       drawStill();
     } else {
-      // Begin with a few veins already part-grown so the hero is never empty.
+      // Begin with a few charts already part-printed so the hero is never empty.
       const now = performance.now();
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         spawn(now);
-        const v = veins[veins.length - 1];
-        v.shown = Math.floor(v.pts.length * (0.25 + rand() * 0.6));
-        v.born = now - 1000;
+        const s = streams[streams.length - 1];
+        s.shown = Math.floor(s.candles.length * (0.2 + rand() * 0.55));
+        s.born = now - 1000;
       }
       start();
     }
