@@ -16,6 +16,7 @@ type F = {
   wins: number;
   verdict: 'none' | 'within' | 'above' | 'below';
   list?: { closed: string; coin: string; days: number; result: number; balance: number; strategy?: string }[];
+  sizing?: { positions?: number; legs?: number; leverage?: number; strategies?: number };
 };
 
 const SHOWN = 5;
@@ -46,6 +47,30 @@ const verdictText = {
   within: 'Within the usual range',
   above: 'Above the usual range',
   below: 'Below the usual range',
+};
+// "From Trade to Balance": the sizing rule in plain words, with an example
+// taken from the newest trade where that does not reveal ladder legs.
+const howCalc = (key: string, d: F): { rule: string; example?: string } | null => {
+  const t = d.list?.[0];
+  const z = d.sizing;
+  if (!t || !z) return null;
+  if (z.strategies) {
+    const own = all[t.strategy ?? '']?.list?.find((x) => x.closed === t.closed && x.coin === t.coin);
+    return {
+      rule: `Each trade first moves its own strategy’s balance (see the strategy’s page). Every strategy holds about 1/${z.strategies} of the portfolio, so Balance here ≈ that figure ÷ ${z.strategies}.`,
+      example: own ? `${t.coin}: ${pct2(own.balance)} on ${names[t.strategy ?? ''] ?? t.strategy} ÷ ${z.strategies} ≈ ${pct2(t.balance)}.` : undefined,
+    };
+  }
+  const { positions: P = 1, legs: N = 1, leverage: L = 1 } = z;
+  if (N > 1) {
+    return {
+      rule: `Each position gets 1/${P} of the balance at ${L}x leverage and is bought in up to ${N} equal parts. So Balance ≈ Trade × ${L} ÷ ${P} × the share of the position that was bought.`,
+    };
+  }
+  return {
+    rule: `Each position gets 1/${P} of the balance at ${L}x leverage, so Balance ≈ Trade × ${L} ÷ ${P}.`,
+    example: `${t.coin}: ${pct2(t.result)} × ${L} ÷ ${P} ≈ ${pct2(t.balance)}.`,
+  };
 };
 const uid = `fw-${items.map((i) => i.key).join('-')}`;
 ---
@@ -119,7 +144,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                       {t.strategy && <td class="strat">{names[t.strategy] ?? t.strategy}</td>}
                       <td class="coin">{t.coin}</td>
                       <td class="num held">{t.days === 1 ? '1 day' : `${t.days} days`}</td>
-                      <td class="num trade">{pct(t.result)}</td>
+                      <td class="num trade">{pct2(t.result)}</td>
                       <td class:list={['num', 'res', t.balance > 0 ? 'win' : 'loss']}>{pct2(t.balance)}</td>
                     </tr>
                   ))}
@@ -136,6 +161,14 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
               <strong>Trade</strong> is the price move from entry to exit, after fees. <strong>Balance</strong> is what the trade added to or took from {d.list[0].strategy ? 'the whole portfolio' : 'the strategy’s balance'}, with position size and leverage included, so the column adds up to the return above.
             </p>
           )}
+          {(() => {
+            const h = howCalc(it.key, d);
+            return h && (
+              <p class="fine explain">
+                <strong>From Trade to Balance:</strong> {h.rule} {h.example && <>Example: {h.example}</>} Small differences come from rounding and from the balance changing over time.
+              </p>
+            );
+          })()}
           <p class="fine">Updated {fmtDay(d.asOf)}.</p>
         </div>
       );

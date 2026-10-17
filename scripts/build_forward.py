@@ -238,6 +238,8 @@ def main():
         sleeves[key] = curve
         data[key] = pack(curve, results, bands[key], band_days, as_of)
         data[key]["list"] = trades
+        max_pos, n_legs, lev = SETTINGS[key]
+        data[key]["sizing"] = {"positions": max_pos, "legs": n_legs, "leverage": lev}
 
     # Combined portfolio: equal shares, rebalanced on the first day of every month.
     rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})
@@ -259,6 +261,7 @@ def main():
                              band_days, as_of, start_capital=CAPITAL * len(SETTINGS))
     # On the portfolio, "balance" is the trade's effect on the whole portfolio:
     # its effect on its strategy times that strategy's share when the trade opened.
+    data["portfolio"]["sizing"] = {"strategies": len(SETTINGS)}
     data["portfolio"]["list"] = sorted(
         ({**t, "strategy": k, "balance": round(t["balance"] * weight[t["_opened"]][k], 5)}
          for k in SETTINGS for t in data[k]["list"]),
