@@ -3,6 +3,7 @@
 // since 13 October 2026, recalculated with the backtest's rules, drawn over
 // the range the backtest typically covered in a period of the same length.
 import forward from '../data/forward.json';
+import backtests from '../data/backtests.json';
 import { strategies } from '../data/strategies';
 
 type F = {
@@ -75,6 +76,7 @@ const howCalc = (key: string, d: F): { rule: string; example?: string } | null =
 };
 // Ladder strategies list how many legs of a position were bought.
 const showLegs = (d: F) => !d.sizing?.strategies && (d.sizing?.legs ?? 1) > 1;
+const btWorst = (key: string) => (backtests as unknown as Record<string, { maxDdClosed: number }>)[key]?.maxDdClosed;
 const uid = `fw-${items.map((i) => i.key).join('-')}`;
 ---
 
@@ -117,12 +119,19 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
 
           <figure class="chart">
             <figcaption>Forward test against the backtest’s usual range</figcaption>
-            <div class="plot" data-curve={JSON.stringify(d.curve)} data-band={JSON.stringify(d.band)} data-start={d.startCapital} tabindex="0" role="img" aria-label={`Forward test since ${fmtDay(d.start)}: ${money(d.startCapital * (1 + d.ret))} from ${money(d.startCapital)}. ${verdictText[d.verdict]} of the backtest. Use the arrow keys to move through the days.`}></div>
+            <div class="plot main" data-curve={JSON.stringify(d.curve)} data-band={JSON.stringify(d.band)} data-start={d.startCapital} tabindex="0" role="img" aria-label={`Forward test since ${fmtDay(d.start)}: ${money(d.startCapital * (1 + d.ret))} from ${money(d.startCapital)}. ${verdictText[d.verdict]} of the backtest. Use the arrow keys to move through the days.`}></div>
             <p class="legend">
               <span class="item"><span class="key line"></span>Forward test</span>
               <span class="item"><span class="key area"></span>Backtest, middle 80% of all periods this long</span>
               <span class="item"><span class="key mid"></span>Backtest, typical</span>
             </p>
+            <p class="subcap">Drawdown from the previous high <span>(closed trades)</span></p>
+            <div class="plot dd" aria-hidden="true"></div>
+            {btWorst(it.key) !== undefined && (
+              <p class="legend">
+                <span class="item">For comparison: the backtest’s worst drawdown on closed trades since 2018 was {pct(btWorst(it.key)!)}.</span>
+              </p>
+            )}
             <div class="tip" hidden></div>
           </figure>
           {d.list && d.list.length > 0 && (
@@ -261,6 +270,27 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+  }
+  .plot.dd {
+    height: 110px;
+  }
+  .subcap {
+    margin: 1.75rem 0 0.5rem !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark) !important;
+  }
+  .subcap span {
+    font-weight: 400;
+    color: var(--on-dark-muted);
+  }
+  .plot :global(.ddarea) {
+    fill: rgba(155, 157, 161, 0.3);
+  }
+  .plot :global(.ddline) {
+    fill: none;
+    stroke: var(--gold-bright);
+    stroke-width: 1.8;
   }
   .plot:focus-visible {
     box-shadow: 0 0 0 1px var(--gold);
@@ -504,8 +534,8 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   };
   const hiders = new WeakMap<HTMLElement, () => void>();
   document.addEventListener('pointerdown', (e) => {
-    document.querySelectorAll<HTMLElement>('.fw .plot').forEach((p) => {
-      if (!p.contains(e.target as Node)) hiders.get(p)?.();
+    document.querySelectorAll<HTMLElement>('.fw .plot.main').forEach((p) => {
+      if (!p.closest('figure')?.contains(e.target as Node)) hiders.get(p)?.();
     });
   });
 
@@ -569,6 +599,41 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     }
 
     const cross = el('line', { class: 'cross', y1: m.t, y2: H - m.b, visibility: 'hidden' }, svg);
+
+    // --- Drawdown below, same x axis -------------------------------------
+    const ddBox = plot.parentElement!.querySelector<HTMLElement>('.plot.dd');
+    let peak = 0;
+    const dd = curve.map((c) => {
+      peak = Math.max(peak, c[1]);
+      return c[1] / peak - 1;
+    });
+    let cross2: Element | null = null;
+    if (ddBox) {
+      const H2 = ddBox.clientHeight;
+      const floor = Math.min(-0.05, Math.min(...dd) * 1.15);
+      const Y2 = (v: number) => 6 + (v / floor) * (H2 - 6 - m.b);
+      ddBox.replaceChildren();
+      const s2 = el('svg', { viewBox: `0 0 ${W} ${H2}` }, ddBox);
+      for (const v of [0, floor / 2, floor]) {
+        el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y2(v), y2: Y2(v) }, s2);
+        el('text', { class: 'tick', x: m.l - 8, y: Y2(v) + 4, 'text-anchor': 'end' }, s2).textContent =
+          v === 0 ? '0%' : `−${(Math.abs(v) * 100).toFixed(Math.abs(v) < 0.1 ? 1 : 0)}%`;
+      }
+      for (let i = 0; i <= n; i++) {
+        const b = band[Math.round((i / n) * (band.length - 1))];
+        el('text', { class: 'tick', x: X(b[0]), y: H2 - 4, 'text-anchor': i === 0 ? 'start' : i === n ? 'end' : 'middle' }, s2).textContent =
+          dayFmt.format(new Date(`${b[0]}T00:00:00Z`));
+      }
+      let ln = '';
+      curve.forEach((c, i) => {
+        const x = X(c[0]).toFixed(1);
+        const y = Y2(dd[i]).toFixed(1);
+        ln += i === 0 ? `M${x},${y}` : `H${x}V${y}`;
+      });
+      el('path', { class: 'ddarea', d: `${ln}V${Y2(0).toFixed(1)}H${X(curve[0][0]).toFixed(1)}Z` }, s2);
+      el('path', { class: 'ddline', d: ln }, s2);
+      cross2 = el('line', { class: 'cross', y1: 6, y2: H2 - m.b, visibility: 'hidden' }, s2);
+    }
     const dot = el('circle', { class: 'dot', r: 4, visibility: 'hidden' }, svg);
     let cur = -1;
     const show = (i: number) => {
@@ -576,9 +641,12 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
       const b = band[cur];
       const c = curve[Math.min(cur, curve.length - 1)];
       const x = X(b[0]);
-      cross.setAttribute('x1', String(x));
-      cross.setAttribute('x2', String(x));
-      cross.setAttribute('visibility', 'visible');
+      for (const c of [cross, cross2]) {
+        if (!c) continue;
+        c.setAttribute('x1', String(x));
+        c.setAttribute('x2', String(x));
+        c.setAttribute('visibility', 'visible');
+      }
       const inside = cur < curve.length;
       dot.setAttribute('visibility', inside ? 'visible' : 'hidden');
       if (inside) {
@@ -604,6 +672,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
         r.append(a, bb);
         return r;
       };
+      if (inside) tip.append(row('Drawdown', dd[cur] < -0.00005 ? `−${(Math.abs(dd[cur]) * 100).toFixed(2)}%` : '0.00%'));
       tip.append(row('Backtest range', `${money(b[1] * cap)} – ${money(b[3] * cap)}`), row('Backtest typical', money(b[2] * cap)));
       tip.hidden = false;
       const tw = tip.offsetWidth;
@@ -612,6 +681,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     };
     const hide = () => {
       cross.setAttribute('visibility', 'hidden');
+      cross2?.setAttribute('visibility', 'hidden');
       dot.setAttribute('visibility', 'hidden');
       tip.hidden = true;
     };
@@ -621,13 +691,15 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
       const t = t0 + ((clientX - r.left - m.l) / (W - m.l - m.r)) * (t1 - t0);
       return Math.round((t - t0) / 864e5);
     };
-    plot.onpointerdown = (e) => show(nearest(e.clientX));
-    plot.onpointermove = (e) => {
-      if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) show(nearest(e.clientX));
-    };
-    plot.onpointerleave = (e) => {
-      if (e.pointerType === 'mouse') hide();
-    };
+    for (const box of [plot, ddBox].filter((b): b is HTMLElement => !!b)) {
+      box.onpointerdown = (e) => show(nearest(e.clientX));
+      box.onpointermove = (e) => {
+        if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) show(nearest(e.clientX));
+      };
+      box.onpointerleave = (e) => {
+        if (e.pointerType === 'mouse') hide();
+      };
+    }
     plot.onkeydown = (e) => {
       if (e.key === 'ArrowRight') show((cur < 0 ? curve.length - 1 : cur) + 1);
       else if (e.key === 'ArrowLeft') show((cur < 0 ? curve.length - 1 : cur) - 1);
@@ -639,7 +711,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   }
 
   document.querySelectorAll<HTMLElement>('.fw').forEach((fw) => {
-    const plots = [...fw.querySelectorAll<HTMLElement>('.plot')];
+    const plots = [...fw.querySelectorAll<HTMLElement>('.plot.main')];
     const redraw = () => plots.forEach((p) => p.offsetParent && draw(p));
     redraw();
     let w = 0;
