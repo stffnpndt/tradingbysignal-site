@@ -15,7 +15,7 @@ type F = {
   trades: number;
   wins: number;
   verdict: 'none' | 'within' | 'above' | 'below';
-  list?: { closed: string; coin: string; days: number; result: number; balance: number; strategy?: string }[];
+  list?: { closed: string; coin: string; days: number; legs?: number; result: number; balance: number; strategy?: string }[];
   sizing?: { positions?: number; legs?: number; leverage?: number; strategies?: number };
 };
 
@@ -64,7 +64,8 @@ const howCalc = (key: string, d: F): { rule: string; example?: string } | null =
   const { positions: P = 1, legs: N = 1, leverage: L = 1 } = z;
   if (N > 1) {
     return {
-      rule: `Each position gets 1/${P} of the balance at ${L}x leverage and is bought in up to ${N} equal parts. So Balance ≈ Trade × ${L} ÷ ${P} × the share of the position that was bought.`,
+      rule: `Each position gets 1/${P} of the balance at ${L}x leverage and is bought in up to ${N} equal legs, so Balance ≈ Trade × ${L} ÷ ${P} × legs ÷ ${N}.`,
+      example: `${t.coin}: ${pct2(t.result)} × ${L} ÷ ${P} × ${t.legs ?? 1} ÷ ${N} ≈ ${pct2(t.balance)}.`,
     };
   }
   return {
@@ -72,6 +73,8 @@ const howCalc = (key: string, d: F): { rule: string; example?: string } | null =
     example: `${t.coin}: ${pct2(t.result)} × ${L} ÷ ${P} ≈ ${pct2(t.balance)}.`,
   };
 };
+// Ladder strategies list how many legs of a position were bought.
+const showLegs = (d: F) => !d.sizing?.strategies && (d.sizing?.legs ?? 1) > 1;
 const uid = `fw-${items.map((i) => i.key).join('-')}`;
 ---
 
@@ -133,6 +136,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                     {d.list[0].strategy && <th scope="col">Strategy</th>}
                     <th scope="col">Coin</th>
                     <th scope="col" class="num held">Held</th>
+                    {showLegs(d) && <th scope="col" class="num">Legs</th>}
                     <th scope="col" class="num">Trade</th>
                     <th scope="col" class="num">Balance</th>
                   </tr>
@@ -144,6 +148,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                       {t.strategy && <td class="strat">{names[t.strategy] ?? t.strategy}</td>}
                       <td class="coin">{t.coin}</td>
                       <td class="num held">{t.days === 1 ? '1 day' : `${t.days} days`}</td>
+                      {showLegs(d) && <td class="num">{t.legs ?? 1} of {d.sizing?.legs}</td>}
                       <td class="num trade">{pct2(t.result)}</td>
                       <td class:list={['num', 'res', t.balance > 0 ? 'win' : 'loss']}>{pct2(t.balance)}</td>
                     </tr>

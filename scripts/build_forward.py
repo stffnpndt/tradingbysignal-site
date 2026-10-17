@@ -20,9 +20,9 @@ Rules, as in the backtests:
   * $10,000 per strategy, profits reinvested.
   * Position size = balance when the position opens / max positions; each leg is
     that x leverage / legs per position. Legs of one ladder share one size.
-  * A tracker row can hold several legs of a ladder. The number of legs is the
-    row's position size divided by the live size of one leg (LIVE_LEG_USD below,
-    from the bridge settings); update that table when the live sizes change.
+  * A tracker row can hold several legs of a ladder. The number of legs comes
+    from the tracker's "Legs" column; for rows without it, it is estimated from
+    the position size and the live size of one leg (LIVE_LEG_USD below).
   * Real entry and exit prices from the tracker, 0.1% fee on every buy and sell,
     both booked when the trade closes.
   * Funding fees are left out, as in the backtests. Only closed trades count.
@@ -108,7 +108,11 @@ def load_legs():
         if opened < START or not entry or not exit_:
             continue
         size = r[col["Position Size ($)"]]
-        n = int(round(float(size) / LIVE_LEG_USD[key])) if isinstance(size, (int, float)) and size else 1
+        given = r[col["Legs"]] if "Legs" in col else None
+        if isinstance(given, (int, float)) and given >= 1:
+            n = int(given)  # legs as recorded in the tracker
+        else:  # older rows: estimate from the position size
+            n = int(round(float(size) / LIVE_LEG_USD[key])) if isinstance(size, (int, float)) and size else 1
         n = max(1, min(n, SETTINGS[key][1]))
         legs[key].append({
             "n": n,
@@ -163,6 +167,7 @@ def simulate(key, legs, days):
                 "closed": p["close"].strftime("%Y-%m-%d"),
                 "coin": p["legs"][0]["asset"],
                 "days": max(1, round(hours / 24)),
+                "legs": sum(leg["n"] for leg in p["legs"]),
                 # Price move of the trade itself, after fees.
                 "result": round((pnl - p["fees_in"]) / notional, 5),
                 # What the trade added to or took from the strategy's balance.
