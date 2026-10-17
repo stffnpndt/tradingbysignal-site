@@ -157,6 +157,7 @@ def simulate(key, legs, days):
             notional = size[i] * sum(leg["n"] for leg in p["legs"])
             hours = (p["close"] - p["open"]).total_seconds() / 3600
             trades.append({
+                "_opened": p["open"].normalize(),
                 "closed": p["close"].strftime("%Y-%m-%d"),
                 "coin": p["legs"][0]["asset"],
                 "days": max(1, round(hours / 24)),
@@ -238,13 +239,15 @@ def main():
 
     # Combined portfolio: equal shares, rebalanced on the first day of every month.
     rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})
-    alloc, period, total = {k: CAPITAL for k in SETTINGS}, None, []
+    alloc, period, total, weight = {k: CAPITAL for k in SETTINGS}, None, [], {}
     for d in days:
         p = d.to_period("M")
         if period is not None and p != period:
             t = sum(alloc.values())
             alloc = {k: t / len(alloc) for k in alloc}
         period = p
+        t = sum(alloc.values())
+        weight[d] = {k: v / t for k, v in alloc.items()}  # each strategy's share at the start of the day
         for k in alloc:
             alloc[k] *= 1 + rets.at[d, k]
         total.append(sum(alloc.values()) / len(alloc))  # per $10,000, like the sleeves
@@ -252,9 +255,15 @@ def main():
     all_results = [r for k in SETTINGS for r in data[k].pop("_results")]
     data["portfolio"] = pack(combined, all_results, bands["portfolio"],
                              band_days, as_of, start_capital=CAPITAL * len(SETTINGS))
+    # On the portfolio, "balance" is the trade's effect on the whole portfolio:
+    # its effect on its strategy times that strategy's share when the trade opened.
     data["portfolio"]["list"] = sorted(
-        ({**t, "strategy": k} for k in SETTINGS for t in data[k]["list"]),
+        ({**t, "strategy": k, "balance": round(t["balance"] * weight[t["_opened"]][k], 5)}
+         for k in SETTINGS for t in data[k]["list"]),
         key=lambda t: t["closed"], reverse=True)
+    for k in list(SETTINGS) + ["portfolio"]:
+        for t in data[k]["list"]:
+            t.pop("_opened", None)
     for k in SETTINGS:
         data[k].pop("_results", None)
     data["portfolio"].pop("_results", None)

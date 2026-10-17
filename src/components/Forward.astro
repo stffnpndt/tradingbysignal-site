@@ -34,6 +34,8 @@ const items = runs.map((r) => ({ ...r, d: all[r.key] })).filter((r) => r.d);
 
 const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const fmtDay = (s: string) => day.format(new Date(`${s}T00:00:00Z`));
+// Effect on the balance: two decimals, since single trades move it by small amounts.
+const pct2 = (v: number) => (Math.abs(v) < 0.00005 ? '0.00%' : `${v < 0 ? '−' : '+'}${Math.abs(v * 100).toFixed(2)}%`);
 const pct = (v: number) => {
   const n = Math.abs(v * 100);
   return n < 0.05 ? '0.0%' : `${v < 0 ? '−' : '+'}${n.toFixed(1)}%`;
@@ -118,7 +120,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                       <td class="coin">{t.coin}</td>
                       <td class="num held">{t.days === 1 ? '1 day' : `${t.days} days`}</td>
                       <td class="num trade">{pct(t.result)}</td>
-                      <td class:list={['num', 'res', t.balance > 0 ? 'win' : 'loss']}>{pct(t.balance)}</td>
+                      <td class:list={['num', 'res', t.balance > 0 ? 'win' : 'loss']}>{pct2(t.balance)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -131,7 +133,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
           )}
           {d.list && d.list.length > 0 && (
             <p class="fine explain">
-              <strong>Trade</strong> is the price move from entry to exit, after fees. <strong>Balance</strong> is what the trade added to or took from {d.list[0].strategy ? 'its strategy’s' : 'the strategy’s'} balance, with position size and leverage included, so these add up to the return above{d.list[0].strategy ? ' for each strategy' : ''}.
+              <strong>Trade</strong> is the price move from entry to exit, after fees. <strong>Balance</strong> is what the trade added to or took from {d.list[0].strategy ? 'the whole portfolio' : 'the strategy’s balance'}, with position size and leverage included, so the column adds up to the return above.
             </p>
           )}
           <p class="fine">Updated {fmtDay(d.asOf)}.</p>
