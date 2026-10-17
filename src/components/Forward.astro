@@ -15,7 +15,7 @@ type F = {
   trades: number;
   wins: number;
   verdict: 'none' | 'within' | 'above' | 'below';
-  list?: { closed: string; coin: string; days: number; result: number; strategy?: string }[];
+  list?: { closed: string; coin: string; days: number; result: number; balance: number; strategy?: string }[];
 };
 
 const SHOWN = 5;
@@ -97,6 +97,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
           </figure>
           {d.list && d.list.length > 0 && (
             <div class:list={['trades', { wide: !!d.list[0].strategy }]}>
+              <div class="scroll">
               <table>
                 <caption>Closed trades</caption>
                 <thead>
@@ -105,7 +106,8 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                     {d.list[0].strategy && <th scope="col">Strategy</th>}
                     <th scope="col">Coin</th>
                     <th scope="col" class="num held">Held</th>
-                    <th scope="col" class="num">Result</th>
+                    <th scope="col" class="num">Trade</th>
+                    <th scope="col" class="num">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -113,19 +115,26 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
                     <tr class:list={{ extra: j >= SHOWN }} hidden={j >= SHOWN}>
                       <td>{fmtShort(t.closed)}</td>
                       {t.strategy && <td class="strat">{names[t.strategy] ?? t.strategy}</td>}
-                      <td>{t.coin}</td>
+                      <td class="coin">{t.coin}</td>
                       <td class="num held">{t.days === 1 ? '1 day' : `${t.days} days`}</td>
-                      <td class:list={['num', 'res', t.result > 0 ? 'win' : 'loss']}>{pct(t.result)}</td>
+                      <td class="num trade">{pct(t.result)}</td>
+                      <td class:list={['num', 'res', t.balance > 0 ? 'win' : 'loss']}>{pct(t.balance)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
               {d.list.length > SHOWN && (
                 <button type="button" class="more" data-more>Show all {d.list.length} trades</button>
               )}
             </div>
           )}
-          <p class="fine">Updated {fmtDay(d.asOf)}. Results are per trade, after fees.</p>
+          {d.list && d.list.length > 0 && (
+            <p class="fine explain">
+              <strong>Trade</strong> is the price move from entry to exit, after fees. <strong>Balance</strong> is what the trade added to or took from {d.list[0].strategy ? 'its strategy’s' : 'the strategy’s'} balance, with position size and leverage included, so these add up to the return above{d.list[0].strategy ? ' for each strategy' : ''}.
+            </p>
+          )}
+          <p class="fine">Updated {fmtDay(d.asOf)}.</p>
         </div>
       );
     })}
@@ -350,9 +359,27 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   .trades td {
     white-space: nowrap;
   }
-  .trades td:nth-last-child(3) {
+  .trades td.coin {
     color: var(--on-dark);
     font-weight: 500;
+  }
+  .trades .scroll.open {
+    max-height: 26rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .trades thead th {
+    position: sticky;
+    top: 0;
+    background: var(--stone);
+    z-index: 1;
+  }
+  .trades td.trade {
+    color: var(--on-dark-muted);
+  }
+  .explain strong {
+    color: var(--on-dark);
+    font-weight: 600;
   }
   .trades .num {
     text-align: right;
@@ -402,7 +429,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     .trades table {
       font-size: 0.875rem;
     }
-    .trades.wide .held {
+    .trades .held {
       display: none;
     }
     .trades td.strat {
@@ -595,7 +622,9 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
     fw.querySelectorAll<HTMLButtonElement>('[data-more]').forEach((b) => {
       b.addEventListener('click', () => {
-        b.closest('.trades')?.querySelectorAll<HTMLElement>('tr.extra').forEach((r) => (r.hidden = false));
+        const box = b.closest('.trades');
+        box?.querySelectorAll<HTMLElement>('tr.extra').forEach((r) => (r.hidden = false));
+        box?.querySelector('.scroll')?.classList.add('open');
         b.remove();
       });
     });

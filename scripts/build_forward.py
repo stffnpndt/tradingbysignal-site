@@ -13,7 +13,8 @@ Output:
     src/data/forward.json              per strategy and for the combined portfolio:
                                        a daily curve, the backtest range band, a few
                                        figures and the closed trades (date, coin,
-                                       holding time, result after fees).
+                                       holding time, result on the trade and its
+                                       effect on the strategy's balance, after fees).
 
 Rules, as in the backtests:
   * $10,000 per strategy, profits reinvested.
@@ -143,6 +144,7 @@ def simulate(key, legs, days):
         p = positions[i]
         if kind == 1:  # open: fix the leg size from the balance at this moment
             size[i] = equity / max_pos * lev / n_legs
+            p["eq_open"] = equity
             p["fees_in"] = FEE * size[i] * sum(leg["n"] for leg in p["legs"])
             equity -= p["fees_in"]
         else:
@@ -158,7 +160,10 @@ def simulate(key, legs, days):
                 "closed": p["close"].strftime("%Y-%m-%d"),
                 "coin": p["legs"][0]["asset"],
                 "days": max(1, round(hours / 24)),
+                # Price move of the trade itself, after fees.
                 "result": round((pnl - p["fees_in"]) / notional, 5),
+                # What the trade added to or took from the strategy's balance.
+                "balance": round((pnl - p["fees_in"]) / p["eq_open"], 5),
             })
         # record balance after each event; curve below takes the last one per day
         closed_by_day[when.normalize()] = equity
