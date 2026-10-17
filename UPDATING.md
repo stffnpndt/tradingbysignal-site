@@ -16,7 +16,7 @@ row's position size and the live leg size (`LIVE_LEG_USD` in `scripts/build_forw
 Update that table whenever the live position sizes change.
 
 Rules: $10,000 per strategy, backtest position sizes and leverage, real entry and
-exit prices, 0.1% fee per side, no funding fees, closed trades only. The closed
+exit prices, 0.1% fee per side (both booked at the close), no funding fees, closed trades only. The closed
 trades are listed per strategy (date, coin, holding time, price move of the trade and
 its effect on the strategy's balance, both after fees); no
 position sizes, legs or open trades are published.
