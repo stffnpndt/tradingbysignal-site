@@ -4,6 +4,7 @@ import Veins from '../components/Veins.astro';
 import Lanes from '../components/LanesThread.astro';
 import Glyph from '../components/Glyph.astro';
 import Backtest from '../components/Backtest.astro';
+import Forward from '../components/Forward.astro';
 import { strategies } from '../data/strategies';
 import backtests from '../data/backtests.json';
 
@@ -93,6 +94,10 @@ const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100
           },
         ]}
       />
+
+      <h3 class="fw-title">Forward test</h3>
+      <p class="section-intro">The live trades of all strategies since they were restructured, combined the same way.</p>
+      <Forward runs={[{ key: 'portfolio', label: 'Portfolio' }]} />
     </div>
   </section>
 
@@ -310,6 +315,13 @@ const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100
     padding-block: clamp(4.5rem, 9vw, 7rem);
   }
   .portfolio h2 {
+    color: #f2f1ee;
+  }
+  .fw-title {
+    margin: 4rem 0 0.75rem;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 3.4vw, 2.25rem);
     color: #f2f1ee;
   }
   .portfolio .section-intro {

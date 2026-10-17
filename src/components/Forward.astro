@@ -1,0 +1,475 @@
+---
+// Forward test for one strategy or the combined portfolio: the live trades
+// since the restructuring, recalculated with the backtest's rules, drawn over
+// the range the backtest typically covered in a period of the same length.
+import forward from '../data/forward.json';
+
+type F = {
+  start: string;
+  asOf: string;
+  startCapital: number;
+  curve: [string, number][];
+  band: [string, number, number, number][];
+  ret: number;
+  trades: number;
+  wins: number;
+  verdict: 'none' | 'within' | 'above' | 'below';
+};
+
+interface Props {
+  runs: { key: string; label: string }[];
+}
+
+const { runs } = Astro.props;
+const all = forward as unknown as Record<string, F>;
+const items = runs.map((r) => ({ ...r, d: all[r.key] })).filter((r) => r.d);
+
+const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const fmtDay = (s: string) => day.format(new Date(`${s}T00:00:00Z`));
+const pct = (v: number) => {
+  const n = Math.abs(v * 100);
+  return n < 0.05 ? '0.0%' : `${v < 0 ? '−' : '+'}${n.toFixed(1)}%`;
+};
+const money = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
+const verdictText = {
+  none: 'No trades yet',
+  within: 'Within the usual range',
+  above: 'Above the usual range',
+  below: 'Below the usual range',
+};
+const uid = `fw-${items.map((i) => i.key).join('-')}`;
+---
+
+{items.length > 0 && (
+  <div class="fw" id={uid}>
+    {items.length > 1 && (
+      <div class="tabs" role="tablist" aria-label="Forward test">
+        {items.map((it, i) => (
+          <button type="button" role="tab" id={`${uid}-tab-${i}`} aria-controls={`${uid}-panel-${i}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    )}
+
+    {items.map((it, i) => {
+      const d = it.d;
+      return (
+        <div class="panel" role={items.length > 1 ? 'tabpanel' : undefined} id={`${uid}-panel-${i}`} aria-labelledby={items.length > 1 ? `${uid}-tab-${i}` : undefined} hidden={i !== 0}>
+          <dl class="tiles">
+            <div>
+              <dt>Return since {fmtDay(d.start)}</dt>
+              <dd>{d.trades ? pct(d.ret) : '—'}</dd>
+              {d.trades > 0 && <span class="hint">{money(d.startCapital * (1 + d.ret))} from {money(d.startCapital)}</span>}
+            </div>
+            <div>
+              <dt>Closed trades</dt>
+              <dd>{d.trades}</dd>
+            </div>
+            <div>
+              <dt>Winning trades</dt>
+              <dd>{d.trades ? `${d.wins} of ${d.trades}` : '—'}</dd>
+            </div>
+            <div>
+              <dt>Compared with the backtest</dt>
+              <dd class="verdict">{verdictText[d.verdict]}</dd>
+              <span class="hint">{d.trades ? 'for a period of this length' : 'The line stays flat until the first trade closes'}</span>
+            </div>
+          </dl>
+
+          <figure class="chart">
+            <figcaption>Forward test against the backtest’s usual range</figcaption>
+            <div class="plot" data-curve={JSON.stringify(d.curve)} data-band={JSON.stringify(d.band)} data-start={d.startCapital} tabindex="0" role="img" aria-label={`Forward test since ${fmtDay(d.start)}: ${money(d.startCapital * (1 + d.ret))} from ${money(d.startCapital)}. ${verdictText[d.verdict]} of the backtest. Use the arrow keys to move through the days.`}></div>
+            <p class="legend">
+              <span class="item"><span class="key line"></span>Forward test</span>
+              <span class="item"><span class="key area"></span>Backtest, middle 80% of all periods this long</span>
+              <span class="item"><span class="key mid"></span>Backtest, typical</span>
+            </p>
+            <div class="tip" hidden></div>
+          </figure>
+          <p class="fine">Updated {fmtDay(d.asOf)}.</p>
+        </div>
+      );
+    })}
+
+    <p class="fine">
+      The forward test replays the live trades since {fmtDay(items[0].d.start)} with the backtest’s rules: a $10,000 start per strategy, the same position sizes and leverage, the real entry and exit prices and 0.1% fees. Funding fees and open trades are not included. A few weeks of trading say little; the band shows how much results usually vary over the same time.
+    </p>
+  </div>
+)}
+
+<style>
+  .fw {
+    margin-top: 1.5rem;
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .tabs button {
+    font: inherit;
+    font-size: 0.9375rem;
+    color: var(--on-dark-muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+  }
+  .tabs button[aria-selected='true'] {
+    color: var(--stone);
+    background: var(--gold);
+    border-color: var(--gold);
+    font-weight: 600;
+  }
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin: 0 0 2rem;
+    border-top: 1px solid var(--rule);
+  }
+  .tiles > div {
+    padding: 1.25rem 1.25rem 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .tiles dt {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .tiles dd {
+    margin: 0;
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #f2f1ee;
+  }
+  .tiles dd.verdict {
+    font-size: clamp(1.125rem, 2vw, 1.375rem);
+    line-height: 1.3;
+    padding-top: 0.4rem;
+    color: var(--gold-bright);
+  }
+  .hint {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .chart {
+    position: relative;
+    margin: 0;
+  }
+  .chart figcaption {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+    margin-bottom: 0.5rem;
+  }
+  .plot {
+    position: relative;
+    height: 260px;
+    outline: none;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .plot:focus-visible {
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+  .plot :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .plot :global(.gridline) {
+    stroke: rgba(231, 231, 229, 0.08);
+  }
+  .plot :global(.tick) {
+    fill: var(--on-dark-muted);
+    font: 11px var(--sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .plot :global(.band) {
+    fill: rgba(195, 160, 90, 0.16);
+  }
+  .plot :global(.mid) {
+    fill: none;
+    stroke: rgba(195, 160, 90, 0.55);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .plot :global(.line) {
+    fill: none;
+    stroke: var(--gold-bright);
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 5px rgba(230, 201, 136, 0.45));
+  }
+  .plot :global(.end) {
+    fill: var(--gold-bright);
+    stroke: var(--stone);
+    stroke-width: 3;
+  }
+  .plot :global(.cross) {
+    stroke: var(--on-dark);
+    opacity: 0.6;
+  }
+  .plot :global(.dot) {
+    fill: var(--gold-bright);
+    stroke: var(--stone);
+    stroke-width: 2;
+  }
+  .plot :global(.today) {
+    fill: var(--gold-bright);
+    font: 600 11px var(--sans);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin: 0.75rem 0 0 !important;
+    font-size: 0.8125rem;
+  }
+  .legend .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .key {
+    display: inline-block;
+    width: 14px;
+  }
+  .key.line {
+    height: 2px;
+    background: var(--gold-bright);
+  }
+  .key.area {
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(195, 160, 90, 0.35);
+  }
+  .key.mid {
+    border-top: 1px dashed rgba(195, 160, 90, 0.8);
+  }
+  .tip {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    min-width: 12rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--stone-2);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+  .tip :global(strong) {
+    display: block;
+    font-size: 1rem;
+    color: #f2f1ee;
+  }
+  .tip :global(.row) {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .tip :global(.row b) {
+    color: var(--on-dark);
+    font-weight: 600;
+  }
+  .fine {
+    margin: 1rem 0 0 !important;
+    font-size: 0.8125rem;
+    max-width: 46rem;
+  }
+  @media (max-width: 40rem) {
+    .tiles {
+      grid-template-columns: 1fr 1fr;
+    }
+    .plot {
+      height: 220px;
+    }
+    .tip {
+      min-width: 0;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.75rem;
+    }
+  }
+</style>
+
+<script>
+  type Pt = [string, number];
+  type Bd = [string, number, number, number];
+  const NS = 'http://www.w3.org/2000/svg';
+  const dayFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const money = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
+  const el = (name: string, attrs: Record<string, string | number>, parent?: Element) => {
+    const n = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+    parent?.appendChild(n);
+    return n;
+  };
+  const hiders = new WeakMap<HTMLElement, () => void>();
+  document.addEventListener('pointerdown', (e) => {
+    document.querySelectorAll<HTMLElement>('.fw .plot').forEach((p) => {
+      if (!p.contains(e.target as Node)) hiders.get(p)?.();
+    });
+  });
+
+  function draw(plot: HTMLElement) {
+    const curve: Pt[] = JSON.parse(plot.dataset.curve || '[]');
+    const band: Bd[] = JSON.parse(plot.dataset.band || '[]');
+    const cap = Number(plot.dataset.start || 10000);
+    const tip = plot.parentElement!.querySelector<HTMLElement>('.tip')!;
+    const W = plot.clientWidth;
+    const H = plot.clientHeight;
+    if (!W || !band.length) return;
+    const m = { l: 60, r: 10, t: 10, b: 22 };
+    const t0 = Date.parse(band[0][0]);
+    const t1 = Date.parse(band[band.length - 1][0]);
+    const X = (s: string) => m.l + ((Date.parse(s) - t0) / (t1 - t0 || 1)) * (W - m.l - m.r);
+    const vals = [...band.flatMap((b) => [b[1], b[3]]), ...curve.map((c) => c[1])];
+    let lo = Math.min(...vals);
+    let hi = Math.max(...vals);
+    const pad = Math.max((hi - lo) * 0.08, 0.004);
+    lo -= pad;
+    hi += pad;
+    const Y = (v: number) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+
+    plot.replaceChildren();
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}` }, plot);
+
+    // y ticks at round dollar steps
+    const spanUsd = (hi - lo) * cap;
+    const raw = spanUsd / 4;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw)!;
+    for (let v = Math.ceil((lo * cap) / step) * step; v <= hi * cap; v += step) {
+      const y = Y(v / cap);
+      el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: y, y2: y }, svg);
+      el('text', { class: 'tick', x: m.l - 8, y: y + 4, 'text-anchor': 'end' }, svg).textContent = money(v);
+    }
+    // x ticks: about five dates
+    const n = Math.min(W < 520 ? 3 : 5, band.length - 1);
+    for (let i = 0; i <= n; i++) {
+      const b = band[Math.round((i / n) * (band.length - 1))];
+      const tx = el('text', { class: 'tick', x: X(b[0]), y: H - 4, 'text-anchor': i === 0 ? 'start' : i === n ? 'end' : 'middle' }, svg);
+      tx.textContent = dayFmt.format(new Date(`${b[0]}T00:00:00Z`));
+    }
+
+    const top = band.map((b) => `${X(b[0]).toFixed(1)},${Y(b[3]).toFixed(1)}`);
+    const bot = band.map((b) => `${X(b[0]).toFixed(1)},${Y(b[1]).toFixed(1)}`).reverse();
+    el('path', { class: 'band', d: `M${top.join('L')}L${bot.join('L')}Z` }, svg);
+    el('path', { class: 'mid', d: 'M' + band.map((b) => `${X(b[0]).toFixed(1)},${Y(b[2]).toFixed(1)}`).join('L') }, svg);
+    // step line: the balance only changes when a trade closes
+    let d = '';
+    curve.forEach((c, i) => {
+      const x = X(c[0]).toFixed(1);
+      const y = Y(c[1]).toFixed(1);
+      d += i === 0 ? `M${x},${y}` : `H${x}V${y}`;
+    });
+    el('path', { class: 'line', d }, svg);
+    const last = curve[curve.length - 1];
+    el('circle', { class: 'end', cx: X(last[0]), cy: Y(last[1]), r: 5 }, svg);
+    if (Date.parse(last[0]) < t1) {
+      el('text', { class: 'today', x: X(last[0]) + 9, y: Y(last[1]) - 8 }, svg).textContent = 'Today';
+    }
+
+    const cross = el('line', { class: 'cross', y1: m.t, y2: H - m.b, visibility: 'hidden' }, svg);
+    const dot = el('circle', { class: 'dot', r: 4, visibility: 'hidden' }, svg);
+    let cur = -1;
+    const show = (i: number) => {
+      cur = Math.max(0, Math.min(band.length - 1, i));
+      const b = band[cur];
+      const c = curve[Math.min(cur, curve.length - 1)];
+      const x = X(b[0]);
+      cross.setAttribute('x1', String(x));
+      cross.setAttribute('x2', String(x));
+      cross.setAttribute('visibility', 'visible');
+      const inside = cur < curve.length;
+      dot.setAttribute('visibility', inside ? 'visible' : 'hidden');
+      if (inside) {
+        dot.setAttribute('cx', String(x));
+        dot.setAttribute('cy', String(Y(c[1])));
+      }
+      tip.replaceChildren();
+      const head = document.createElement('div');
+      head.textContent = dayFmt.format(new Date(`${b[0]}T00:00:00Z`)) + (inside ? '' : ' (ahead)');
+      tip.append(head);
+      if (inside) {
+        const v = document.createElement('strong');
+        v.textContent = money(c[1] * cap);
+        tip.append(v);
+      }
+      const row = (label: string, val: string) => {
+        const r = document.createElement('div');
+        r.className = 'row';
+        const a = document.createElement('span');
+        a.textContent = label;
+        const bb = document.createElement('b');
+        bb.textContent = val;
+        r.append(a, bb);
+        return r;
+      };
+      tip.append(row('Backtest range', `${money(b[1] * cap)} – ${money(b[3] * cap)}`), row('Backtest typical', money(b[2] * cap)));
+      tip.hidden = false;
+      const tw = tip.offsetWidth;
+      tip.style.left = `${Math.max(0, x + 14 + tw > W ? x - 14 - tw : x + 14)}px`;
+      tip.style.top = '32px';
+    };
+    const hide = () => {
+      cross.setAttribute('visibility', 'hidden');
+      dot.setAttribute('visibility', 'hidden');
+      tip.hidden = true;
+    };
+    hiders.set(plot, hide);
+    const nearest = (clientX: number) => {
+      const r = plot.getBoundingClientRect();
+      const t = t0 + ((clientX - r.left - m.l) / (W - m.l - m.r)) * (t1 - t0);
+      return Math.round((t - t0) / 864e5);
+    };
+    plot.onpointerdown = (e) => show(nearest(e.clientX));
+    plot.onpointermove = (e) => {
+      if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) show(nearest(e.clientX));
+    };
+    plot.onpointerleave = (e) => {
+      if (e.pointerType === 'mouse') hide();
+    };
+    plot.onkeydown = (e) => {
+      if (e.key === 'ArrowRight') show((cur < 0 ? curve.length - 1 : cur) + 1);
+      else if (e.key === 'ArrowLeft') show((cur < 0 ? curve.length - 1 : cur) - 1);
+      else if (e.key === 'Escape') hide();
+      else return;
+      e.preventDefault();
+    };
+    plot.onblur = hide;
+  }
+
+  document.querySelectorAll<HTMLElement>('.fw').forEach((fw) => {
+    const plots = [...fw.querySelectorAll<HTMLElement>('.plot')];
+    const redraw = () => plots.forEach((p) => p.offsetParent && draw(p));
+    redraw();
+    let w = 0;
+    new ResizeObserver(() => {
+      if (fw.clientWidth !== w) {
+        w = fw.clientWidth;
+        redraw();
+      }
+    }).observe(fw);
+    const tabs = [...fw.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...fw.querySelectorAll<HTMLElement>('.panel')];
+    const select = (i: number) => {
+      tabs.forEach((t, j) => {
+        t.setAttribute('aria-selected', String(i === j));
+        t.tabIndex = i === j ? 0 : -1;
+      });
+      panels.forEach((p, j) => (p.hidden = i !== j));
+      redraw();
+    };
+    tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
+  });
+</script>

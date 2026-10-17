@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Glyph from '../../components/Glyph.astro';
 import Backtest from '../../components/Backtest.astro';
+import Forward from '../../components/Forward.astro';
 import IchimokuDiagram from '../../components/diagrams/IchimokuDiagram.astro';
 import AtrDiagram from '../../components/diagrams/AtrDiagram.astro';
 import RsiDiagram from '../../components/diagrams/RsiDiagram.astro';
@@ -158,6 +159,10 @@ const others = strategies.filter((x) => x.id !== s.id);
         <h2 id="bt-title">Backtest</h2>
         <p class="lead">How the strategy would have traded since 2018, with the same rules, limits and leverage as live.</p>
         <Backtest runs={runs} />
+
+        <h2 class="spaced" id="forward-title">Forward test</h2>
+        <p class="lead">The live trades since the strategies were restructured, measured with the backtest’s rules.</p>
+        <Forward runs={runs.map((r) => ({ key: r.key, label: r.label }))} />
       </div>
     </section>
   )}
