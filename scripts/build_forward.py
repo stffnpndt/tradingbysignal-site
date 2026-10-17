@@ -18,6 +18,9 @@ Rules, as in the backtests:
   * $10,000 per strategy, profits reinvested.
   * Position size = balance when the position opens / max positions; each leg is
     that x leverage / legs per position. Legs of one ladder share one size.
+  * A tracker row can hold several legs of a ladder. The number of legs is the
+    row's position size divided by the live size of one leg (LIVE_LEG_USD below,
+    from the bridge settings); update that table when the live sizes change.
   * Real entry and exit prices from the tracker, 0.1% fee on every buy and sell.
   * Funding fees are left out, as in the backtests. Only closed trades count.
   * Combined portfolio: $10,000 in each strategy, back to equal shares monthly.
@@ -59,6 +62,17 @@ SETTINGS = {
 }
 
 
+# Live notional of one leg per strategy (bridge .env, Oct 2026), used only to
+# count how many legs a tracker row contains.
+LIVE_LEG_USD = {
+    "tf-ichimoku": 19_880,
+    "mr-atr": 1_985,
+    "mr-rsi": 5_960 / 3,
+    "rsi-red-legs": 5_960 / 5,
+    "rsi-red-legs-qqq": 47_700 / 5,
+}
+
+
 def strategy_key(name: str, asset: str):
     n = (name or "").lower()
     if "qqq" in n or (asset or "").upper() == "QQQ":
@@ -90,7 +104,11 @@ def load_legs():
             continue
         if opened < START or not entry or not exit_:
             continue
+        size = r[col["Position Size ($)"]]
+        n = int(round(float(size) / LIVE_LEG_USD[key])) if isinstance(size, (int, float)) and size else 1
+        n = max(1, min(n, SETTINGS[key][1]))
         legs[key].append({
+            "n": n,
             "asset": r[col["Asset"]],
             "side": -1 if str(r[col["Position"]]).lower().startswith("short") else 1,
             "open": pd.Timestamp(opened),
@@ -124,13 +142,12 @@ def simulate(key, legs, days):
         p = positions[i]
         if kind == 1:  # open: fix the leg size from the balance at this moment
             size[i] = equity / max_pos * lev / n_legs
-            equity -= sum(FEE * size[i] for _ in p["legs"])
-            closed_by_day[when.normalize()] += 0
-            p["fees_in"] = FEE * size[i] * len(p["legs"])
+            p["fees_in"] = FEE * size[i] * sum(leg["n"] for leg in p["legs"])
+            equity -= p["fees_in"]
         else:
             pnl = 0.0
             for leg in p["legs"]:
-                qty = size[i] / leg["entry"]
+                qty = size[i] * leg["n"] / leg["entry"]
                 pnl += leg["side"] * qty * (leg["exit"] - leg["entry"]) - FEE * qty * leg["exit"]
             equity += pnl
             results.append(pnl - p["fees_in"])

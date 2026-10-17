@@ -11,6 +11,10 @@ Needs only the Trade Tracker.
 2. `python3 scripts/build_forward.py` (optionally with an "as of" date, `YYYY-MM-DD`).
 3. `npm run build`, check, commit `src/data/forward.json`, push to `main`.
 
+A tracker row can hold several legs of a ladder; the script counts them from the
+row's position size and the live leg size (`LIVE_LEG_USD` in `scripts/build_forward.py`).
+Update that table whenever the live position sizes change.
+
 Rules: $10,000 per strategy, backtest position sizes and leverage, real entry and
 exit prices, 0.1% fee per side, no funding fees, closed trades only. No trade list
 or coins are published.
