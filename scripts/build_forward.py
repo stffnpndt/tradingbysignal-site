@@ -6,7 +6,9 @@ typically did over a period of the same length.
 
 Input  (not committed, see .gitignore):
     backtest-data/trade_tracker.xlsx   the Trade Tracker ("Trade Log" sheet)
-    backtest-data/<key>_equity.csv     backtest equity curves (for the range band)
+    src/data/forward-bands.json        the backtest's range band, pre-calculated for up to
+                                       three years (committed; rebuilt with --bands whenever
+                                       the backtests change, which needs backtest-data/)
 Output:
     src/data/forward.json              per strategy and for the combined portfolio:
                                        a daily curve, the backtest range band and a
@@ -21,6 +23,7 @@ Rules, as in the backtests:
   * Combined portfolio: $10,000 in each strategy, back to equal shares monthly.
 
 Run:  python3 scripts/build_forward.py [YYYY-MM-DD]   (optional "as of" date, default today)
+      python3 scripts/build_forward.py --bands        (after new backtests: refresh the bands)
 """
 import datetime as dt
 import json
@@ -38,6 +41,8 @@ import build_backtests as bb  # noqa: E402
 ROOT = bb.ROOT
 TRACKER = os.path.join(bb.SRC, "trade_tracker.xlsx")
 OUT = os.path.join(ROOT, "src", "data", "forward.json")
+BANDS = os.path.join(ROOT, "src", "data", "forward-bands.json")
+BAND_DAYS = 3 * 366
 
 START = pd.Timestamp("2026-10-13")
 CAPITAL = 10_000.0
@@ -153,6 +158,24 @@ def band(equity: pd.Series, horizon: int):
     return out
 
 
+def build_bands():
+    """Backtest range for every horizon up to BAND_DAYS, per strategy and the portfolio."""
+    out = {}
+    for key in list(SETTINGS) + ["portfolio"]:
+        out[key] = [[round(a, 5), round(m, 5), round(b, 5)] for a, m, b in band(bb.load_equity(key).equity, BAND_DAYS)]
+    with open(BANDS, "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(f"wrote {BANDS}")
+
+
+def load_bands(horizon):
+    with open(BANDS) as f:
+        bands = json.load(f)
+    if horizon >= len(bands["portfolio"]):
+        raise SystemExit("Forward test is longer than the stored bands; run with --bands to extend them.")
+    return {k: [tuple(x) for x in v[: horizon + 1]] for k, v in bands.items()}
+
+
 def verdict(value, lo, hi, n_trades):
     if n_trades == 0:
         return "none"
@@ -164,18 +187,21 @@ def verdict(value, lo, hi, n_trades):
 
 
 def main():
+    if "--bands" in sys.argv:
+        build_bands()
+        return
     as_of = pd.Timestamp(sys.argv[1]) if len(sys.argv) > 1 else pd.Timestamp(dt.date.today())
     legs = load_legs()
     days = pd.date_range(START, as_of, freq="D")
     horizon = max(len(days) - 1, MIN_DAYS)
     band_days = pd.date_range(START, START + pd.Timedelta(days=horizon), freq="D")
+    bands = load_bands(horizon)
 
     data, sleeves = {}, {}
     for key in SETTINGS:
         curve, results = simulate(key, legs.get(key, []), days)
         sleeves[key] = curve
-        bt = bb.load_equity(key)
-        data[key] = pack(curve, results, band(bt.equity, horizon), band_days, as_of)
+        data[key] = pack(curve, results, bands[key], band_days, as_of)
 
     # Combined portfolio: equal shares, rebalanced on the first day of every month.
     rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})
@@ -191,7 +217,7 @@ def main():
         total.append(sum(alloc.values()) / len(alloc))  # per $10,000, like the sleeves
     combined = pd.Series(total, index=days)
     all_results = [r for k in SETTINGS for r in data[k].pop("_results")]
-    data["portfolio"] = pack(combined, all_results, band(bb.load_equity("portfolio").equity, horizon),
+    data["portfolio"] = pack(combined, all_results, bands["portfolio"],
                              band_days, as_of, start_capital=CAPITAL * len(SETTINGS))
     for k in SETTINGS:
         data[k].pop("_results", None)
