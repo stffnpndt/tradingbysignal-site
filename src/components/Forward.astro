@@ -3,6 +3,7 @@
 // since 13 October 2026, recalculated with the backtest's rules, drawn over
 // the range the backtest typically covered in a period of the same length.
 import forward from '../data/forward.json';
+import { strategies } from '../data/strategies';
 
 type F = {
   start: string;
@@ -14,7 +15,14 @@ type F = {
   trades: number;
   wins: number;
   verdict: 'none' | 'within' | 'above' | 'below';
+  list?: { closed: string; coin: string; days: number; result: number; strategy?: string }[];
 };
+
+const SHOWN = 5;
+const names: Record<string, string> = Object.fromEntries(strategies.map((s) => [s.id, s.name]));
+names['rsi-red-legs-qqq'] = 'RSI Red Legs, QQQ';
+const short = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const fmtShort = (s: string) => short.format(new Date(`${s}T00:00:00Z`));
 
 interface Props {
   runs: { key: string; label: string }[];
@@ -87,7 +95,37 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
             </p>
             <div class="tip" hidden></div>
           </figure>
-          <p class="fine">Updated {fmtDay(d.asOf)}.</p>
+          {d.list && d.list.length > 0 && (
+            <div class:list={['trades', { wide: !!d.list[0].strategy }]}>
+              <table>
+                <caption>Closed trades</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Closed</th>
+                    {d.list[0].strategy && <th scope="col">Strategy</th>}
+                    <th scope="col">Coin</th>
+                    <th scope="col" class="num held">Held</th>
+                    <th scope="col" class="num">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.list.map((t, j) => (
+                    <tr class:list={{ extra: j >= SHOWN }} hidden={j >= SHOWN}>
+                      <td>{fmtShort(t.closed)}</td>
+                      {t.strategy && <td class="strat">{names[t.strategy] ?? t.strategy}</td>}
+                      <td>{t.coin}</td>
+                      <td class="num held">{t.days === 1 ? '1 day' : `${t.days} days`}</td>
+                      <td class:list={['num', 'res', t.result > 0 ? 'win' : 'loss']}>{pct(t.result)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {d.list.length > SHOWN && (
+                <button type="button" class="more" data-more>Show all {d.list.length} trades</button>
+              )}
+            </div>
+          )}
+          <p class="fine">Updated {fmtDay(d.asOf)}. Results are per trade, after fees.</p>
         </div>
       );
     })}
@@ -281,12 +319,96 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     color: var(--on-dark);
     font-weight: 600;
   }
+  .trades {
+    margin-top: 2rem;
+    max-width: 40rem;
+  }
+  .trades table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .trades caption {
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+    padding-bottom: 0.5rem;
+  }
+  .trades th,
+  .trades td {
+    text-align: left;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--on-dark-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .trades thead th {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .trades td {
+    white-space: nowrap;
+  }
+  .trades td:nth-last-child(3) {
+    color: var(--on-dark);
+    font-weight: 500;
+  }
+  .trades .num {
+    text-align: right;
+    padding-right: 0;
+    padding-left: 0.75rem;
+  }
+  .trades .res {
+    color: #f2f1ee;
+    font-weight: 600;
+  }
+  .trades .res::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    vertical-align: 0.1em;
+  }
+  .trades .res.win::before {
+    background: var(--gold-bright);
+  }
+  .trades .res.loss::before {
+    border: 1px solid var(--on-dark-muted);
+  }
+  .more {
+    margin-top: 0.75rem;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--on-dark);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    cursor: pointer;
+  }
+  .more:hover {
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
   .fine {
     margin: 1rem 0 0 !important;
     font-size: 0.8125rem;
     max-width: 46rem;
   }
   @media (max-width: 40rem) {
+    .trades table {
+      font-size: 0.875rem;
+    }
+    .trades.wide .held {
+      display: none;
+    }
+    .trades td.strat {
+      white-space: normal;
+      font-size: 0.8125rem;
+    }
     .tiles {
       grid-template-columns: 1fr 1fr;
     }
@@ -471,5 +593,11 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
       redraw();
     };
     tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
+    fw.querySelectorAll<HTMLButtonElement>('[data-more]').forEach((b) => {
+      b.addEventListener('click', () => {
+        b.closest('.trades')?.querySelectorAll<HTMLElement>('tr.extra').forEach((r) => (r.hidden = false));
+        b.remove();
+      });
+    });
   });
 </script>

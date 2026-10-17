@@ -11,8 +11,9 @@ Input  (not committed, see .gitignore):
                                        the backtests change, which needs backtest-data/)
 Output:
     src/data/forward.json              per strategy and for the combined portfolio:
-                                       a daily curve, the backtest range band and a
-                                       few figures. No trade list, no coins.
+                                       a daily curve, the backtest range band, a few
+                                       figures and the closed trades (date, coin,
+                                       holding time, result after fees).
 
 Rules, as in the backtests:
   * $10,000 per strategy, profits reinvested.
@@ -136,7 +137,7 @@ def simulate(key, legs, days):
     positions = positions_from(legs)
     events = [(p["open"], 1, i) for i, p in enumerate(positions)] + \
              [(p["close"], 0, i) for i, p in enumerate(positions)]
-    equity, size, results = CAPITAL, {}, []
+    equity, size, results, trades = CAPITAL, {}, [], []
     closed_by_day = defaultdict(float)
     for when, kind, i in sorted(events, key=lambda e: (e[0], e[1])):
         p = positions[i]
@@ -151,6 +152,14 @@ def simulate(key, legs, days):
                 pnl += leg["side"] * qty * (leg["exit"] - leg["entry"]) - FEE * qty * leg["exit"]
             equity += pnl
             results.append(pnl - p["fees_in"])
+            notional = size[i] * sum(leg["n"] for leg in p["legs"])
+            hours = (p["close"] - p["open"]).total_seconds() / 3600
+            trades.append({
+                "closed": p["close"].strftime("%Y-%m-%d"),
+                "coin": p["legs"][0]["asset"],
+                "days": max(1, round(hours / 24)),
+                "result": round((pnl - p["fees_in"]) / notional, 5),
+            })
         # record balance after each event; curve below takes the last one per day
         closed_by_day[when.normalize()] = equity
     curve, last = [], CAPITAL
@@ -158,7 +167,8 @@ def simulate(key, legs, days):
         if d in closed_by_day:
             last = closed_by_day[d]
         curve.append(last)
-    return pd.Series(curve, index=days), results
+    trades.sort(key=lambda t: t["closed"], reverse=True)
+    return pd.Series(curve, index=days), results, trades
 
 
 def band(equity: pd.Series, horizon: int):
@@ -216,9 +226,10 @@ def main():
 
     data, sleeves = {}, {}
     for key in SETTINGS:
-        curve, results = simulate(key, legs.get(key, []), days)
+        curve, results, trades = simulate(key, legs.get(key, []), days)
         sleeves[key] = curve
         data[key] = pack(curve, results, bands[key], band_days, as_of)
+        data[key]["list"] = trades
 
     # Combined portfolio: equal shares, rebalanced on the first day of every month.
     rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})
@@ -236,6 +247,9 @@ def main():
     all_results = [r for k in SETTINGS for r in data[k].pop("_results")]
     data["portfolio"] = pack(combined, all_results, bands["portfolio"],
                              band_days, as_of, start_capital=CAPITAL * len(SETTINGS))
+    data["portfolio"]["list"] = sorted(
+        ({**t, "strategy": k} for k in SETTINGS for t in data[k]["list"]),
+        key=lambda t: t["closed"], reverse=True)
     for k in SETTINGS:
         data[k].pop("_results", None)
     data["portfolio"].pop("_results", None)
