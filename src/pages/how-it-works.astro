@@ -121,6 +121,10 @@ const markets = [
           <p>Closed trades are collected per strategy, with entry, exit, size and result, so every strategy can be judged on its own.</p>
         </div>
       </div>
+      <p class="note proof-note">
+        On top of that, every fill is published within a minute in a public record that cannot be
+        changed afterwards, timestamped on the Bitcoin blockchain. <a href="/trade-proof">See the trade proof</a>.
+      </p>
     </div>
   </section>
   <section class="block grain" id="backtests" aria-labelledby="bt-title">
@@ -354,6 +358,13 @@ const markets = [
   }
 
   /* Records --------------------------------------------------------------- */
+  .proof-note {
+    margin-top: 2.5rem !important;
+  }
+  .proof-note a {
+    color: var(--gold-bright);
+    text-underline-offset: 0.18em;
+  }
   .grid4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

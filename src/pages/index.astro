@@ -115,10 +115,13 @@ const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100
         </li>
         <li>
           <h3>The order goes to OKX</h3>
-          <p>The order is placed on OKX Europe and every fill is logged, so results can be checked trade by trade.</p>
+          <p>The order is placed on OKX Europe. Every fill is logged and published within a minute in a public record that cannot be changed afterwards.</p>
         </li>
       </ol>
-      <a class="more on-dark" href="/how-it-works">How it works in detail</a>
+      <p class="more-row">
+        <a class="more" href="/how-it-works">How it works in detail</a>
+        <a class="more" href="/trade-proof">Trade proof: every trade, public and unchangeable</a>
+      </p>
     </div>
   </section>
 
@@ -286,6 +289,12 @@ const pct = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100
   }
   .more.on-dark {
     margin-top: 2.5rem;
+  }
+  .more-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2.25rem;
+    margin: 1.75rem 0 0;
   }
   .legend {
     display: flex;

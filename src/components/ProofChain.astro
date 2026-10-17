@@ -1,0 +1,286 @@
+---
+// Live view of the public trade record: the current chain head and the last heads that
+// were timestamped on GitHub. Data is read in the browser straight from the public repo,
+// so this page never needs a rebuild when trades happen.
+const REPO = 'stffnpndt/tbs-trade-proof';
+---
+
+<div class="chain" data-chain data-repo={REPO}>
+  <dl class="stats" aria-live="polite">
+    <div>
+      <dt>Entries recorded</dt>
+      <dd data-seq>—</dd>
+    </div>
+    <div>
+      <dt>Last entry</dt>
+      <dd data-updated>—</dd>
+    </div>
+    <div class="wide">
+      <dt>Current chain head</dt>
+      <dd class="hash" data-head>loading…</dd>
+    </div>
+  </dl>
+
+  <p class="cap">Latest timestamped links of the chain</p>
+  <ol class="links" data-links>
+    {Array.from({ length: 5 }).map(() => (
+      <li class="link ghost" aria-hidden="true">
+        <span class="seal"></span>
+        <span class="n">#···</span>
+        <span class="t">&nbsp;</span>
+        <span class="h">········</span>
+      </li>
+    ))}
+  </ol>
+  <p class="fail" data-fail hidden>
+    The live view could not load right now. The record itself is always on
+    <a href={`https://github.com/${REPO}`}>GitHub</a>.
+  </p>
+</div>
+
+<style is:global>
+  .chain {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.75rem;
+  }
+  .chain .stats {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 1.25rem 2.75rem;
+    margin: 0;
+  }
+  .chain .stats div {
+    min-width: 0;
+  }
+  .chain .stats dt {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+    margin-bottom: 0.3rem;
+  }
+  .chain .stats dd {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(1.5rem, 3vw, 2.125rem);
+    color: #f2f1ee;
+    line-height: 1.1;
+  }
+  .chain .stats .hash {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--gold-bright);
+    word-break: break-all;
+    padding-top: 0.45rem;
+  }
+  .chain .cap {
+    margin: 2.5rem 0 0.9rem !important;
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .chain .links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: relative;
+  }
+  /* the thread that ties the links together */
+  .chain .links::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 11px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(195, 160, 90, 0.55) 8%, rgba(195, 160, 90, 0.55) 92%, var(--gold-bright));
+  }
+  .chain .link {
+    position: relative;
+    display: grid;
+    gap: 0.15rem;
+    padding: 2.1rem 0.75rem 0 0;
+    text-decoration: none;
+    color: inherit;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: chain-rise 600ms ease forwards;
+    animation-delay: calc(var(--i, 0) * 140ms);
+  }
+  .chain .link.ghost {
+    opacity: 0.35;
+    animation: none;
+    transform: none;
+  }
+  .chain .seal {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    background: var(--stone);
+  }
+  .chain a.link .seal {
+    background: var(--gold);
+  }
+  .chain .link.newest .seal {
+    background: var(--gold-bright);
+    border-color: var(--gold-bright);
+    animation: chain-pulse 2.4s ease-in-out infinite;
+  }
+  .chain .n {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    color: #f2f1ee;
+  }
+  .chain .t {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+  }
+  .chain .h {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    color: var(--gold);
+  }
+  .chain a.link:hover .n,
+  .chain a.link:focus-visible .n {
+    color: var(--gold-bright);
+  }
+  .chain a.link:hover .h {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .chain .fail {
+    margin-top: 1rem !important;
+    font-size: 0.9375rem;
+  }
+  @keyframes chain-rise {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes chain-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(230, 201, 136, 0.55);
+    }
+    50% {
+      box-shadow: 0 0 12px 3px rgba(230, 201, 136, 0.45);
+    }
+  }
+  @media (max-width: 48rem) {
+    .chain .stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    .chain .stats .wide {
+      grid-column: 1 / -1;
+    }
+    .chain .links {
+      grid-template-columns: 1fr;
+      padding-left: 1.75rem;
+    }
+    .chain .links::before {
+      left: 6px;
+      right: auto;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      height: auto;
+      background: linear-gradient(180deg, var(--gold-bright), rgba(195, 160, 90, 0.55) 15%, rgba(195, 160, 90, 0.55) 85%, transparent);
+    }
+    .chain .link {
+      grid-template-columns: auto auto 1fr;
+      align-items: baseline;
+      gap: 0.9rem;
+      padding: 0.55rem 0;
+    }
+    .chain .seal {
+      left: -1.75rem;
+      top: 50%;
+      margin-top: -6px;
+    }
+  }
+</style>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-chain]');
+  if (root) {
+    const repo = root.dataset.repo!;
+    const raw = `https://raw.githubusercontent.com/${repo}`;
+    const $ = (s: string) => root.querySelector<HTMLElement>(s)!;
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin',
+    });
+    const ago = (d: Date) => {
+      const m = Math.round((Date.now() - d.getTime()) / 60000);
+      if (m < 2) return 'just now';
+      if (m < 90) return `${m} min ago`;
+      const h = Math.round(m / 60);
+      if (h < 36) return `${h} h ago`;
+      return `${Math.round(h / 24)} days ago`;
+    };
+
+    const load = async () => {
+      const [latest, index] = await Promise.all([
+        fetch(`${raw}/main/latest.json`).then((r) => {
+          if (!r.ok) throw new Error('latest');
+          return r.json();
+        }),
+        fetch(`${raw}/proofs/index.csv`).then((r) => (r.ok ? r.text() : '')),
+      ]);
+
+      $('[data-seq]').textContent = Number(latest.seq).toLocaleString('en-US');
+      const upd = new Date(latest.updated_at);
+      $('[data-updated]').textContent = ago(upd);
+      $('[data-updated]').title = `${fmt.format(upd)} (Munich time)`;
+      $('[data-head]').textContent = latest.head;
+
+      const rows = index
+        .trim()
+        .split('\n')
+        .slice(1)
+        .map((l) => l.split(','))
+        .filter((c) => c.length >= 4)
+        .slice(-5);
+      if (!rows.length) return;
+
+      const list = $('[data-links]');
+      list.textContent = '';
+      rows.forEach(([seq, head, commit, at], i) => {
+        const a = document.createElement('a');
+        a.className = 'link' + (i === rows.length - 1 ? ' newest' : '');
+        a.style.setProperty('--i', String(i));
+        a.href = `https://github.com/${repo}/commit/${commit}`;
+        a.title = `Chain head ${head}\ntimestamped ${at}`;
+        const seal = document.createElement('span');
+        seal.className = 'seal';
+        const n = document.createElement('span');
+        n.className = 'n';
+        n.textContent = `#${seq}`;
+        const t = document.createElement('span');
+        t.className = 't';
+        t.textContent = fmt.format(new Date(at));
+        const h = document.createElement('span');
+        h.className = 'h';
+        h.textContent = head.slice(0, 10);
+        a.append(seal, n, t, h);
+        const li = document.createElement('li');
+        li.style.display = 'contents';
+        li.append(a);
+        list.append(li);
+      });
+    };
+
+    load().catch(() => {
+      $('[data-head]').textContent = '—';
+      $('[data-fail]').hidden = false;
+    });
+  }
+</script>
