@@ -105,7 +105,9 @@ def load_legs():
         entry, exit_ = r[col["Entry Price"]], r[col["Exit Price"]]
         if key is None or not isinstance(opened, dt.datetime) or not isinstance(closed, dt.datetime):
             continue
-        if opened < START or not entry or not exit_:
+        # Every trade that closes after the start counts, with its real entry,
+        # including one opened shortly before the start.
+        if closed < START or not entry or not exit_:
             continue
         size = r[col["Position Size ($)"]]
         given = r[col["Legs"]] if "Legs" in col else None
@@ -268,7 +270,7 @@ def main():
     # its effect on its strategy times that strategy's share when the trade opened.
     data["portfolio"]["sizing"] = {"strategies": len(SETTINGS)}
     data["portfolio"]["list"] = sorted(
-        ({**t, "strategy": k, "balance": round(t["balance"] * weight[t["_opened"]][k], 5)}
+        ({**t, "strategy": k, "balance": round(t["balance"] * weight[max(t["_opened"], START)][k], 5)}
          for k in SETTINGS for t in data[k]["list"]),
         key=lambda t: t["closed"], reverse=True)
     for k in list(SETTINGS) + ["portfolio"]:

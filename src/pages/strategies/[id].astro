@@ -161,7 +161,7 @@ const others = strategies.filter((x) => x.id !== s.id);
         <Backtest runs={runs} />
 
         <h2 class="spaced" id="forward-title">Forward test</h2>
-        <p class="lead">The live trades since 13 October 2026, measured with the backtest’s rules.</p>
+        <p class="lead">The live trades closed since 13 October 2026, measured with the backtest’s rules.</p>
         <Forward runs={runs.map((r) => ({ key: r.key, label: r.label }))} />
       </div>
     </section>

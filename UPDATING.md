@@ -15,7 +15,8 @@ A tracker row can hold several legs of a ladder; the number comes from the track
 "Legs" column (rows without it are estimated from the position size and `LIVE_LEG_USD`
 in `scripts/build_forward.py`).
 
-Rules: $10,000 per strategy, backtest position sizes and leverage, real entry and
+Rules: every trade closed on or after 13 Oct counts with its real entry (also one opened
+shortly before), $10,000 per strategy, backtest position sizes and leverage, real entry and
 exit prices, 0.1% fee per side (both booked at the close), no funding fees, closed trades only. The closed
 trades are listed per strategy (date, coin, holding time, price move of the trade and
 its effect on the strategy's balance, both after fees; legs for the ladder strategies);
