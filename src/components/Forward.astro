@@ -672,7 +672,12 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
         r.append(a, bb);
         return r;
       };
-      if (inside) tip.append(row('Drawdown', dd[cur] < -0.00005 ? `−${(Math.abs(dd[cur]) * 100).toFixed(2)}%` : '0.00%'));
+      if (inside) {
+        // Two different measures: the return since the start, and the drop
+        // from the highest balance so far (the drawdown chart below).
+        const p = (x: number) => (Math.abs(x) < 0.00005 ? '0.00%' : `${x > 0 ? '+' : '−'}${(Math.abs(x) * 100).toFixed(2)}%`);
+        tip.append(row('Since start', p(c[1] - 1)), row('From previous high', p(dd[cur])));
+      }
       tip.append(row('Backtest range', `${money(b[1] * cap)} – ${money(b[3] * cap)}`), row('Backtest typical', money(b[2] * cap)));
       tip.hidden = false;
       const tw = tip.offsetWidth;
