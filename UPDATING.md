@@ -5,7 +5,18 @@ The site shows two kinds of results. Both are built into small JSON files in
 
 ## Forward test (live trades since 13 Oct 2026)
 
-Needs only the Trade Tracker.
+Normally automatic: `site_updater.py` on the trading machine reads the closed trades
+from the bridge logs, writes them as `backtest-data/trade_tracker.xlsx` into its own
+clone, runs `scripts/build_forward.py` and pushes `src/data/forward.json` to `main`.
+Trades it can't complete (e.g. opened before the oldest log) block the update until
+they are fixed in its `site_fixes.csv`.
+
+When changing `scripts/build_forward.py` by hand: pull first and keep the output format
+(`portfolio.trades`, the `Trade Log` sheet with a `Strategy` header row, the column
+names), since the updater relies on them. Commit the script; the updater rebuilds
+`forward.json` on its next run.
+
+By hand, with only the Trade Tracker:
 
 1. Save the latest tracker as `backtest-data/trade_tracker.xlsx`.
 2. `python3 scripts/build_forward.py` (optionally with an "as of" date, `YYYY-MM-DD`).
