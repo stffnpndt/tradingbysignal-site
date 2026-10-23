@@ -166,6 +166,7 @@ def simulate(key, legs, days):
             hours = (p["close"] - p["open"]).total_seconds() / 3600
             trades.append({
                 "_opened": p["open"].normalize(),
+                "_closed_at": p["close"],  # exact time, so the latest close is listed first
                 "closed": p["close"].strftime("%Y-%m-%d"),
                 "coin": p["legs"][0]["asset"],
                 "days": max(1, round(hours / 24)),
@@ -182,7 +183,7 @@ def simulate(key, legs, days):
         if d in closed_by_day:
             last = closed_by_day[d]
         curve.append(last)
-    trades.sort(key=lambda t: t["closed"], reverse=True)
+    trades.sort(key=lambda t: t["_closed_at"], reverse=True)
     return pd.Series(curve, index=days), results, trades
 
 
@@ -272,10 +273,11 @@ def main():
     data["portfolio"]["list"] = sorted(
         ({**t, "strategy": k, "balance": round(t["balance"] * weight[max(t["_opened"], START)][k], 5)}
          for k in SETTINGS for t in data[k]["list"]),
-        key=lambda t: t["closed"], reverse=True)
+        key=lambda t: t["_closed_at"], reverse=True)
     for k in list(SETTINGS) + ["portfolio"]:
         for t in data[k]["list"]:
             t.pop("_opened", None)
+            t.pop("_closed_at", None)
     for k in SETTINGS:
         data[k].pop("_results", None)
     data["portfolio"].pop("_results", None)
