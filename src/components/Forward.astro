@@ -437,6 +437,24 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     max-height: 26rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* Slim, dark scrollbar with its own gap, so it neither glares white on
+       Windows nor sits on top of the Balance column. */
+    padding-right: 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(231, 231, 229, 0.25) transparent;
+  }
+  .trades .scroll.open::-webkit-scrollbar {
+    width: 6px;
+  }
+  .trades .scroll.open::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .trades .scroll.open::-webkit-scrollbar-thumb {
+    background: rgba(231, 231, 229, 0.25);
+    border-radius: 3px;
+  }
+  .trades .scroll.open::-webkit-scrollbar-thumb:hover {
+    background: rgba(231, 231, 229, 0.4);
   }
   .trades thead th {
     position: sticky;
