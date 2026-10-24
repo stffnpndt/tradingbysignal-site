@@ -53,7 +53,7 @@ BAND_DAYS = 3 * 366
 START = pd.Timestamp("2026-10-13")
 CAPITAL = 10_000.0
 FEE = 0.001
-MIN_DAYS = 30  # draw the backtest band at least this far, so the funnel is visible early
+LOOKAHEAD = 30  # draw the backtest band this many days past the last day, so the funnel stays visible ahead
 
 # Same limits as in the backtests: (max positions, legs per position, leverage).
 SETTINGS = {
@@ -211,12 +211,15 @@ def build_bands():
     print(f"wrote {BANDS}")
 
 
-def load_bands(horizon):
+def load_bands(horizon, needed):
+    """Bands up to `horizon` days (shortened to what is stored); at least `needed` days must exist."""
     with open(BANDS) as f:
         bands = json.load(f)
-    if horizon >= len(bands["portfolio"]):
+    stored = len(bands["portfolio"]) - 1
+    if needed > stored:
         raise SystemExit("Forward test is longer than the stored bands; run with --bands to extend them.")
-    return {k: [tuple(x) for x in v[: horizon + 1]] for k, v in bands.items()}
+    horizon = min(horizon, stored)
+    return horizon, {k: [tuple(x) for x in v[: horizon + 1]] for k, v in bands.items()}
 
 
 def verdict(value, lo, hi, n_trades):
@@ -236,9 +239,8 @@ def main():
     as_of = pd.Timestamp(sys.argv[1]) if len(sys.argv) > 1 else pd.Timestamp(dt.date.today())
     legs = load_legs()
     days = pd.date_range(START, as_of, freq="D")
-    horizon = max(len(days) - 1, MIN_DAYS)
+    horizon, bands = load_bands(len(days) - 1 + LOOKAHEAD, len(days) - 1)
     band_days = pd.date_range(START, START + pd.Timedelta(days=horizon), freq="D")
-    bands = load_bands(horizon)
 
     data, sleeves = {}, {}
     for key in SETTINGS:
