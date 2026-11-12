@@ -77,6 +77,29 @@ const howCalc = (key: string, d: F): { rule: string; example?: string } | null =
 // Ladder strategies list how many legs of a position were bought.
 const showLegs = (d: F) => !d.sizing?.strategies && (d.sizing?.legs ?? 1) > 1;
 const btWorst = (key: string) => (backtests as unknown as Record<string, { maxDdClosed: number }>)[key]?.maxDdClosed;
+// Trade statistics after fees, from each trade's effect on the balance, so they
+// match the return above: win rate, profit factor (gains ÷ losses) and the net
+// reward/risk ratio (average win ÷ average loss). Without a loss the last two
+// have no value yet.
+const stats = (key: string, d: F) => {
+  const b = (d.list ?? []).map((t) => t.balance);
+  const win = b.filter((x) => x > 0);
+  const loss = b.filter((x) => x <= 0).map((x) => -x);
+  const sw = win.reduce((a, x) => a + x, 0);
+  const sl = loss.reduce((a, x) => a + x, 0);
+  const bt = (backtests as unknown as Record<string, { winRate?: number; profitFactor?: number }>)[key];
+  return {
+    winRate: b.length ? win.length / b.length : undefined,
+    pf: sl > 0 ? sw / sl : undefined,
+    rr: win.length && sl > 0 ? sw / win.length / (sl / loss.length) : undefined,
+    btWin: bt?.winRate,
+    btPf: bt?.profitFactor,
+    // Implied by the backtest's win rate and profit factor: PF × (1 − w) ÷ w.
+    btRr: bt?.winRate && bt?.profitFactor ? (bt.profitFactor * (1 - bt.winRate)) / bt.winRate : undefined,
+  };
+};
+const ratio = (v?: number) => (v === undefined ? '—' : v.toFixed(2));
+const whole = (v: number) => `${Math.round(v * 100)}%`;
 const uid = `fw-${items.map((i) => i.key).join('-')}`;
 ---
 
@@ -94,6 +117,8 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
 
     {items.map((it, i) => {
       const d = it.d;
+      const st = stats(it.key, d);
+      const noLoss = d.trades > 0 && st.pf === undefined;
       return (
         <div class="panel" role={items.length > 1 ? 'tabpanel' : undefined} id={`${uid}-panel-${i}`} aria-labelledby={items.length > 1 ? `${uid}-tab-${i}` : undefined} hidden={i !== 0}>
           <dl class="tiles">
@@ -107,13 +132,34 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
               <dd>{d.trades}</dd>
             </div>
             <div>
-              <dt>Winning trades</dt>
-              <dd>{d.trades ? `${d.wins} of ${d.trades}` : '—'}</dd>
-            </div>
-            <div>
               <dt>Compared with the backtest</dt>
               <dd class="verdict">{verdictText[d.verdict]}</dd>
               <span class="hint">{d.trades ? 'for a period of this length' : 'The line stays flat until the first trade closes'}</span>
+            </div>
+            <div>
+              <dt>Win rate</dt>
+              <dd>{st.winRate !== undefined ? whole(st.winRate) : '—'}</dd>
+              <span class="hint">
+                {d.trades > 0 && `${d.wins} of ${d.trades} trades`}
+                {d.trades > 0 && st.btWin !== undefined && ' · '}
+                {st.btWin !== undefined && `backtest ${whole(st.btWin)}`}
+              </span>
+            </div>
+            <div>
+              <dt>Profit factor (net)</dt>
+              <dd>{ratio(st.pf)}</dd>
+              <span class="hint">
+                {noLoss ? 'no losing trade yet' : 'gains ÷ losses'}
+                {st.btPf !== undefined && ` · backtest ${ratio(st.btPf)}`}
+              </span>
+            </div>
+            <div>
+              <dt>Reward/risk (net)</dt>
+              <dd>{ratio(st.rr)}</dd>
+              <span class="hint">
+                {noLoss ? 'no losing trade yet' : 'average win ÷ average loss'}
+                {st.btRr !== undefined && ` · backtest ${ratio(st.btRr)}`}
+              </span>
             </div>
           </dl>
 
@@ -222,7 +268,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   }
   .tiles {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     margin: 0 0 2rem;
     border-top: 1px solid var(--rule);
   }
