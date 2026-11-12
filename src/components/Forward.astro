@@ -98,6 +98,23 @@ const stats = (key: string, d: F) => {
     btRr: bt?.winRate && bt?.profitFactor ? (bt.profitFactor * (1 - bt.winRate)) / bt.winRate : undefined,
   };
 };
+// Monthly result of the closed-trade balance: each month's end against the end
+// of the month before (the first month against the start). The current month
+// is still running.
+const monthName = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const months = (d: F) => {
+  const out: { m: string; label: string; ret: number; usd: number; running: boolean }[] = [];
+  let prev = 1;
+  const ends = new Map<string, number>();
+  for (const [day, v] of d.curve) ends.set(day.slice(0, 7), v);
+  const last = d.curve[d.curve.length - 1]?.[0].slice(0, 7);
+  for (const [m, v] of ends) {
+    out.push({ m, label: monthName.format(new Date(`${m}-01T00:00:00Z`)), ret: v / prev - 1, usd: d.startCapital * (v - prev), running: m === last });
+    prev = v;
+  }
+  return out;
+};
+const usd = (v: number) => (Math.round(v) === 0 ? '$0' : `${v < 0 ? '−' : '+'}$${Math.abs(Math.round(v)).toLocaleString('en-US')}`);
 const ratio = (v?: number) => (v === undefined ? '—' : v.toFixed(2));
 const whole = (v: number) => `${Math.round(v * 100)}%`;
 const uid = `fw-${items.map((i) => i.key).join('-')}`;
@@ -180,6 +197,31 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
             )}
             <div class="tip" hidden></div>
           </figure>
+          {it.key === 'portfolio' && d.trades > 0 && (() => {
+            // One shared scale: gains above the zero line, losses below it.
+            const ms = months(d);
+            const up = Math.max(0, ...ms.map((x) => x.ret));
+            const dn = Math.max(0, ...ms.map((x) => -x.ret));
+            const H = 140;
+            const k = H / Math.max(up + dn, 0.002);
+            const zero = up * k;
+            return (
+              <figure class="months">
+                <figcaption>Result per month <span>(closed trades)</span></figcaption>
+                <div class="bars" style={`--n:${ms.length};--h:${Math.max(H, zero + dn * k)}px`}>
+                  {ms.map((x) => (
+                    <div class:list={['bar', x.ret < 0 ? 'neg' : 'pos']}>
+                      <span class="val">{pct2(x.ret)}<small>{usd(x.usd)}</small></span>
+                      <span class="col" style={`--zero:${zero}px`}>
+                        <span class="fill" style={x.ret < 0 ? `top:${zero}px;height:${Math.max(2, -x.ret * k)}px` : `top:${zero - Math.max(2, x.ret * k)}px;height:${Math.max(2, x.ret * k)}px`}></span>
+                      </span>
+                      <span class="mon">{x.label}{x.running && <small>so far</small>}</span>
+                    </div>
+                  ))}
+                </div>
+              </figure>
+            );
+          })()}
           {d.list && d.list.length > 0 && (
             <div class:list={['trades', { wide: !!d.list[0].strategy }]}>
               <div class="scroll">
@@ -319,6 +361,81 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   }
   .plot.dd {
     height: 110px;
+  }
+  /* Monthly results: plain HTML bars with their values always visible, so
+     nothing depends on hover or tap. Gains rise from the zero line, losses
+     hang below it (outlined, like losing trades elsewhere). */
+  .months {
+    margin: 2.25rem 0 0;
+  }
+  .months figcaption {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+    margin-bottom: 0.75rem;
+  }
+  .months figcaption span {
+    font-weight: 400;
+    color: var(--on-dark-muted);
+  }
+  .bars {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(4.25rem, 7rem));
+    gap: 0 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(231, 231, 229, 0.25) transparent;
+  }
+  .bar {
+    display: grid;
+    grid-template-rows: auto var(--h) auto;
+    font-variant-numeric: tabular-nums;
+    align-content: start;
+  }
+  .val {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f2f1ee;
+    padding-bottom: 0.4rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .val small,
+  .mon small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--on-dark-muted);
+  }
+  .col {
+    position: relative;
+  }
+  /* The zero line runs through every column at the same height. */
+  .col::before {
+    content: '';
+    position: absolute;
+    left: -0.375rem;
+    right: -0.375rem;
+    top: var(--zero);
+    border-top: 1px solid var(--rule);
+  }
+  .fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+  .bar.neg .fill {
+    background: transparent;
+    border: 1.5px solid var(--gold-bright);
+  }
+  .mon {
+    font-size: 0.8125rem;
+    color: var(--on-dark-muted);
+    padding-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
   }
   .subcap {
     margin: 1.75rem 0 0.5rem !important;
@@ -585,6 +702,8 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
 </style>
 
 <script>
+  // Month bars: on narrow screens start at the latest month.
+  document.querySelectorAll<HTMLElement>('.fw .bars').forEach((b) => (b.scrollLeft = b.scrollWidth));
   type Pt = [string, number];
   type Bd = [string, number, number, number];
   const NS = 'http://www.w3.org/2000/svg';
