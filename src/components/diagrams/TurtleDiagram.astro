@@ -1,0 +1,243 @@
+---
+// Illustration of how the Turtle strategy trades: a range it sits out, a
+// breakout that fails and is cut at the initial stop, a breakout that becomes
+// a trend, the exit trailing below it, and the exit when the trend turns.
+// Synthetic data; the signals are computed from the drawn path itself.
+
+// Deterministic pseudo-random so the drawing never changes between builds.
+let seed = 7;
+const rand = () => {
+  seed = (seed * 16807) % 2147483647;
+  return (seed - 1) / 2147483646;
+};
+
+const W = 760;
+const H = 300;
+const step = 5;
+
+// Price path (y grows downward): range, false breakout, range, trend, roll-over.
+const target = (x: number) => {
+  if (x < 225) return 206 + Math.sin(x / 24) * 13;
+  if (x < 262) return 206 - ((x - 225) / 37) * 42; // false breakout up
+  if (x < 310) return 164 + ((x - 262) / 48) * 72; // fails, drops back
+  if (x < 385) return 222 - Math.sin((x - 310) / 24) * 14 - (x - 310) * 0.35;
+  if (x < 615) return 196 - ((x - 385) / 230) * 142 + Math.sin((x - 385) / 19) * 13; // trend
+  return 54 + ((x - 615) / 135) * 96; // roll-over
+};
+const price: [number, number][] = [];
+let y = 206;
+for (let x = 10; x <= 750; x += step) {
+  y += (target(x) - y) * 0.32 + (rand() - 0.5) * 6;
+  price.push([x, y]);
+}
+const idx = (x: number) => Math.round((x - 10) / step);
+const top = (a: number, b: number) => Math.min(...price.slice(idx(a), idx(b) + 1).map((p) => p[1]));
+// First point from `from` on where price rises above (up) or falls below (down) a level.
+const cross = (level: number, from: number, up: boolean) => {
+  const i = price.findIndex(([x, py]) => x >= from && (up ? py < level : py > level));
+  return price[i];
+};
+
+// 1-2: the range high, a breakout through it that fails at the initial stop.
+const rangeHigh = top(10, 222);
+const failIn = cross(rangeHigh, 225, true);
+const failStop = rangeHigh + 14;
+const failOut = cross(failStop, failIn[0] + 10, false);
+// 3: the new high is the top of the failed breakout; the next break of it starts the trend.
+const high2 = top(failIn[0], failOut[0]);
+const winIn = cross(high2, failOut[0] + 20, true);
+// 4-5: trailing exit, the lowest price of the past ~2 weeks (one point is a day),
+// never below the initial stop; the trade closes when price falls to it.
+const LOW_N = 10;
+const winStop = high2 + 14;
+const trail: [number, number][] = [];
+let winOut = price[price.length - 1];
+for (let i = idx(winIn[0]) + 1; i < price.length; i++) {
+  const level = Math.min(winStop, Math.max(...price.slice(Math.max(0, i - LOW_N), i).map((p) => p[1])));
+  trail.push([price[i][0], level]);
+  if (price[i][1] > level) {
+    winOut = [price[i][0], level];
+    break;
+  }
+}
+
+const line = (pts: [number, number][]) => 'M' + pts.map(([x, py]) => `${x},${py.toFixed(1)}`).join(' L');
+const pricePath = line(price);
+const stepped = (pts: [number, number][]) => {
+  const out: [number, number][] = [];
+  for (const p of pts) {
+    if (out.length) out.push([p[0], out[out.length - 1][1]]);
+    out.push(p);
+  }
+  return line(out);
+};
+const trailPath = stepped(trail);
+const mid = trail[Math.floor(trail.length * 0.55)];
+---
+
+<figure class="diagram turtle">
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Illustration: the strategy waits while price stays in its range, buys the first breakout to a new high, which fails and is closed at the initial stop with a small loss, buys the next breakout, which becomes a trend, lets the exit trail below the trend and closes when price falls to it.">
+    {[60, 120, 180, 240].map((gy) => <line class="grid" x1="0" x2={W} y1={gy} y2={gy} />)}
+
+    <line class="high" x1="20" x2={failIn[0]} y1={rangeHigh} y2={rangeHigh} />
+    <line class="high" x1={failOut[0]} x2={winIn[0]} y1={high2} y2={high2} />
+    <line class="stop" x1={failIn[0]} x2={failOut[0] + 12} y1={failStop} y2={failStop} />
+    <path class="trail" d={trailPath} />
+
+    <path class="price" pathLength="1" d={pricePath} />
+
+    <circle class="buy" style="--d:0.55s" cx={failIn[0]} cy={rangeHigh} r="6" />
+    <circle class="sell" style="--d:0.75s" cx={failOut[0]} cy={failStop} r="6" />
+    <circle class="buy" style="--d:0.95s" cx={winIn[0]} cy={high2} r="6" />
+    <circle class="sell" style="--d:1.5s" cx={winOut[0]} cy={winOut[1]} r="6" />
+
+    <g class="num" style="--d:0.3s"><circle cx="80" cy={rangeHigh - 24} r="11" /><text x="80" y={rangeHigh - 24}>1</text></g>
+    <g class="num" style="--d:0.75s"><circle cx={failOut[0] + 26} cy={failStop + 22} r="11" /><text x={failOut[0] + 26} y={failStop + 22}>2</text></g>
+    <g class="num" style="--d:0.95s"><circle cx={winIn[0] - 26} cy={high2 - 24} r="11" /><text x={winIn[0] - 26} y={high2 - 24}>3</text></g>
+    <g class="num" style="--d:1.3s"><circle cx={mid[0] + 18} cy={mid[1] + 26} r="11" /><text x={mid[0] + 18} y={mid[1] + 26}>4</text></g>
+    <g class="num" style="--d:1.5s"><circle cx={winOut[0] + 26} cy={winOut[1] + 22} r="11" /><text x={winOut[0] + 26} y={winOut[1] + 22}>5</text></g>
+  </svg>
+
+  <ol class="key">
+    <li><strong>Range:</strong> the gold line marks the highest price of the past several weeks. While price stays below it, the strategy waits.</li>
+    <li><strong>Failed breakout:</strong> price crosses the high, the trade opens, then falls back to the initial stop. A small, known loss.</li>
+    <li><strong>Breakout that holds:</strong> the next new high opens a trade again, and this time a trend follows.</li>
+    <li><strong>Trailing exit:</strong> the dashed line follows the lowest price of the past couple of weeks and only moves up.</li>
+    <li><strong>Exit:</strong> the trend turns, price falls to the trailing line, and the position closes with most of the move.</li>
+  </ol>
+</figure>
+
+<style>
+  .diagram {
+    margin: 0;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .high {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.6;
+    opacity: 0.85;
+  }
+  .trail {
+    fill: none;
+    stroke: var(--on-dark-muted);
+    stroke-width: 1.3;
+    stroke-dasharray: 5 4;
+    opacity: 0;
+  }
+  .stop {
+    stroke: var(--on-dark-muted);
+    stroke-width: 1.2;
+    stroke-dasharray: 2 4;
+    opacity: 0;
+  }
+  .price {
+    fill: none;
+    stroke: var(--on-dark);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .buy {
+    fill: var(--gold-bright);
+    filter: drop-shadow(0 0 6px rgba(230, 201, 136, 0.7));
+  }
+  .sell {
+    fill: var(--stone);
+    stroke: var(--on-dark);
+    stroke-width: 2;
+  }
+  .num circle {
+    fill: var(--stone-2);
+    stroke: var(--on-dark-muted);
+    stroke-width: 1;
+  }
+  .num text {
+    fill: var(--on-dark);
+    font: 600 12px var(--sans);
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  @media (max-width: 40rem) {
+    .num circle {
+      r: 20px;
+    }
+    .num text {
+      font-size: 22px;
+    }
+    .price {
+      stroke-width: 3;
+    }
+  }
+
+  .buy,
+  .sell,
+  .num {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(0.3);
+  }
+
+  .diagram.drawn .price {
+    transition: stroke-dashoffset 1.6s cubic-bezier(0.45, 0.05, 0.25, 1);
+    stroke-dashoffset: 0;
+  }
+  .diagram.drawn .stop {
+    opacity: 1;
+    transition: opacity 400ms ease 0.6s;
+  }
+  .diagram.drawn .trail {
+    opacity: 1;
+    transition: opacity 500ms ease 1.1s;
+  }
+  .diagram.drawn .buy,
+  .diagram.drawn .sell,
+  .diagram.drawn .num {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 250ms ease-out var(--d, 0s),
+      transform 400ms cubic-bezier(0.3, 1.5, 0.6, 1) var(--d, 0s);
+  }
+
+  .key {
+    margin: 1.5rem 0 0;
+    padding-left: 1.4rem;
+    color: var(--on-dark-muted);
+    font-size: 0.9375rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .key strong {
+    color: var(--on-dark);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  const fig = document.querySelector<HTMLElement>('figure.diagram');
+  if (fig) {
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          fig.classList.add('drawn');
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(fig);
+  }
+</script>
