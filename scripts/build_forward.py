@@ -19,7 +19,8 @@ Output:
 Rules, as in the backtests:
   * $10,000 per strategy, profits reinvested.
   * Position size = balance when the position opens / max positions; each leg is
-    that x leverage / legs per position. Legs of one ladder share one size.
+    that x leverage / legs per position. Turtle: each position is a fixed 1/6
+    of the balance (POSITION_SHARE). Legs of one ladder share one size.
   * A tracker row can hold several legs of a ladder. The number of legs comes
     from the tracker's "Legs" column; for rows without it, it is estimated from
     the position size and the live size of one leg (LIVE_LEG_USD below).
@@ -62,6 +63,7 @@ SETTINGS = {
     "mr-rsi": (4, 3, 2),
     "rsi-red-legs": (8, 5, 2),
     "rsi-red-legs-qqq": (1, 5, 3),
+    "tf-turtle": (6, 1, 2),
 }
 
 
@@ -73,13 +75,21 @@ LIVE_LEG_USD = {
     "mr-rsi": 5_960 / 3,
     "rsi-red-legs": 5_960 / 5,
     "rsi-red-legs-qqq": 47_700 / 5,
+    "tf-turtle": 2_200,
+}
+
+# Strategies whose position size is a fixed share of the balance (notional,
+# leverage already included) instead of balance / max positions x leverage.
+# Turtle: each position is 1/6 of the balance at 2x, as in its backtest.
+POSITION_SHARE = {
+    "tf-turtle": 1 / 6,
 }
 
 
 def strategy_key(name: str, asset: str):
     n = (name or "").lower()
     if "turtle" in n:
-        return None  # not in the forward test until its backtest is on the site
+        return "tf-turtle"
     if "qqq" in n or (asset or "").upper() == "QQQ":
         return "rsi-red-legs-qqq"
     if "ichimoku" in n:
@@ -152,7 +162,8 @@ def simulate(key, legs, days):
     for when, kind, i in sorted(events, key=lambda e: (e[0], e[1])):
         p = positions[i]
         if kind == 1:  # open: fix the leg size from the balance at this moment
-            size[i] = equity / max_pos * lev / n_legs
+            share = POSITION_SHARE.get(key)
+            size[i] = (equity * share if share else equity / max_pos * lev) / n_legs
             p["eq_open"] = equity
             # Buying fee, booked together with the selling fee when the trade
             # closes, so the balance only moves on closed trades.
@@ -252,6 +263,8 @@ def main():
         data[key]["list"] = trades
         max_pos, n_legs, lev = SETTINGS[key]
         data[key]["sizing"] = {"positions": max_pos, "legs": n_legs, "leverage": lev}
+        if key in POSITION_SHARE:
+            data[key]["sizing"]["share"] = POSITION_SHARE[key]
 
     # Combined portfolio: equal shares, rebalanced on the first day of every month.
     rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})

@@ -45,7 +45,7 @@ const end = all.curve[all.curve.length - 1];
     {years.map((y) => (
       <span class="gridline" style={`left:${y.x}%`} aria-hidden="true" />
     ))}
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Backtests of today's rules from 2018 to today: four strategies as thin strands and all of them together as one brighter line.">
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Backtests of today's rules from 2018 to today: five strategies as thin strands and all of them together as one brighter line.">
       {lines.map((l) => (
         <g class="strand" data-id={l.id} data-href={`#${l.id}`} style={`--i:${l.i}`}>
           <path class="line" d={l.d} />
