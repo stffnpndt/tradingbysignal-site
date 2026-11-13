@@ -272,10 +272,13 @@ def main():
         k_days = pd.date_range(s0, as_of, freq="D")
         if len(k_days) == 0:  # starts later than the "as of" date: just the start day
             k_days = pd.DatetimeIndex([s0])
-        k_band_days = pd.date_range(s0, s0 + pd.Timedelta(days=horizon), freq="D")
+        # Same date axis for every strategy (START to the end of the band); a later
+        # strategy's line and band begin on its own start and end on the same day.
+        k_band_days = pd.date_range(s0, band_days[-1], freq="D")
         curve, results, trades = simulate(key, legs.get(key, []), k_days)
         sleeves[key] = curve
-        data[key] = pack(curve, results, bands[key], k_band_days, as_of, start=s0)
+        data[key] = pack(curve, results, bands[key][: len(k_band_days)], k_band_days, as_of, start=s0,
+                         axis=(band_days[0], band_days[-1]))
         data[key]["list"] = trades
         max_pos, n_legs, lev = SETTINGS[key]
         data[key]["sizing"] = {"positions": max_pos, "legs": n_legs, "leverage": lev}
@@ -302,7 +305,8 @@ def main():
     combined = pd.Series(total, index=days)
     all_results = [r for k in SETTINGS for r in data[k].pop("_results")]
     data["portfolio"] = pack(combined, all_results, bands["portfolio"],
-                             band_days, as_of, start_capital=CAPITAL * len(SETTINGS))
+                             band_days, as_of, start_capital=CAPITAL * len(SETTINGS),
+                             axis=(band_days[0], band_days[-1]))
     # On the portfolio, "balance" is the trade's effect on the whole portfolio:
     # its effect on its strategy times that strategy's share when the trade opened.
     data["portfolio"]["sizing"] = {"strategies": len(SETTINGS)}
@@ -326,13 +330,15 @@ def main():
     print(f"wrote {OUT}")
 
 
-def pack(curve, results, bnd, band_days, as_of, start_capital=CAPITAL, start=START):
+def pack(curve, results, bnd, band_days, as_of, start_capital=CAPITAL, start=START, axis=None):
     mult = curve / CAPITAL
     h = len(curve) - 1
     lo, _, hi = bnd[h]
     n = len(results)
     return {
         "start": start.strftime("%Y-%m-%d"),
+        # Date range of the chart's x axis, the same for every strategy.
+        "axis": [a.strftime("%Y-%m-%d") for a in (axis or (band_days[0], band_days[-1]))],
         "asOf": as_of.strftime("%Y-%m-%d"),
         "startCapital": start_capital,
         "curve": [[d.strftime("%Y-%m-%d"), round(float(v), 5)] for d, v in mult.items()],
