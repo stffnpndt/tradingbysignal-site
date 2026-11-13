@@ -41,6 +41,13 @@ const backtestRuns: Record<string, { key: string; label: string; setup: string }
     { key: 'rsi-red-legs', label: 'Coins', setup: `${top30} Up to eight ladders of five legs, 2x leverage.` },
     { key: 'rsi-red-legs-qqq', label: 'Nasdaq-100 (QQQ)', setup: 'QQQ, one ladder of five legs, 3x leverage.' },
   ],
+  'tf-turtle': [
+    {
+      key: 'tf-turtle',
+      label: 'Coins',
+      setup: 'Coins: the ten most traded on Binance, picked again every quarter, from August 2018. Up to six positions, each 1/6 of the capital, 2x leverage.',
+    },
+  ],
 };
 const runs = backtestRuns[s.id] ?? [];
 

@@ -5,7 +5,7 @@ Turn the portfolio backtest exports into the small data file the website uses.
 Input  (not committed, see .gitignore):
     backtest-data/<key>_equity.csv   daily equity curve from the portfolio backtest
     backtest-data/<key>_trades.csv   one row per trade
-The combined portfolio is calculated here from the five strategy curves, the same
+The combined portfolio is calculated here from the six strategy curves, the same
 way as portfolio_backtest_combined.py does it: an equal share each, split back
 into equal shares on the first day of every month.
 Output:
@@ -25,7 +25,7 @@ import pandas as pd
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "backtest-data")
 OUT = os.path.join(ROOT, "src", "data", "backtests.json")
-SLEEVES = ["tf-ichimoku", "mr-atr", "mr-rsi", "rsi-red-legs", "rsi-red-legs-qqq"]
+SLEEVES = ["tf-ichimoku", "mr-atr", "mr-rsi", "rsi-red-legs", "rsi-red-legs-qqq", "tf-turtle"]
 KEYS = SLEEVES + ["portfolio"]
 SLEEVE_CAPITAL = 10_000.0
 START = {"portfolio": SLEEVE_CAPITAL * len(SLEEVES)}

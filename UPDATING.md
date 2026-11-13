@@ -37,7 +37,9 @@ no position sizes or open trades are published.
 
 1. Put the portfolio backtest exports into `backtest-data/` as
    `<key>_equity.csv` and `<key>_trades.csv`, with key one of
-   `tf-ichimoku`, `mr-atr`, `mr-rsi`, `rsi-red-legs`, `rsi-red-legs-qqq`.
+   `tf-ichimoku`, `mr-atr`, `mr-rsi`, `rsi-red-legs`, `rsi-red-legs-qqq`, `tf-turtle`.
+   The Turtle files come from the Turtle backtester (`TURTLE Strategy/backtest`): load the data with
+   `load_binance_data.js`, then `turtle_portfolio_bt.js` and `export_website.js` in the same browser console.
 2. `python3 scripts/build_backtests.py` (the combined portfolio is calculated from these).
 3. `python3 scripts/build_forward.py --bands`, then `python3 scripts/build_forward.py`,
    so the forward test's range band matches the new backtests.

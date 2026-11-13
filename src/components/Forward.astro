@@ -17,7 +17,7 @@ type F = {
   wins: number;
   verdict: 'none' | 'within' | 'above' | 'below';
   list?: { closed: string; coin: string; days: number; legs?: number; result: number; balance: number; strategy?: string }[];
-  sizing?: { positions?: number; legs?: number; leverage?: number; strategies?: number };
+  sizing?: { positions?: number; legs?: number; leverage?: number; strategies?: number; share?: number };
 };
 
 const SHOWN = 5;
@@ -63,6 +63,14 @@ const howCalc = (key: string, d: F): { rule: string; example?: string } | null =
     };
   }
   const { positions: P = 1, legs: N = 1, leverage: L = 1 } = z;
+  if (z.share) {
+    // Fixed share per position, leverage already included (Turtle: 1/6 at 2x).
+    const k = Math.round(1 / z.share);
+    return {
+      rule: `Each position is 1/${k} of the balance in size (at ${L}x leverage, so 1/${k * L} of it as margin), so Balance ≈ Trade ÷ ${k}.`,
+      example: `${t.coin}: ${pct2(t.result)} ÷ ${k} ≈ ${pct2(t.balance)}.`,
+    };
+  }
   if (N > 1) {
     return {
       rule: `Each position gets 1/${P} of the balance at ${L}x leverage and is bought in up to ${N} equal legs, so Balance ≈ Trade × ${L} ÷ ${P} × legs ÷ ${N}.`,

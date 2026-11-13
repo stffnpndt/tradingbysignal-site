@@ -1,7 +1,7 @@
 // The live strategies, in the order they went live.
 // `glyph` selects the small diagram drawn next to each strategy.
 
-export type Glyph = 'atr' | 'ichimoku' | 'momentum' | 'rsi' | 'ladder';
+export type Glyph = 'atr' | 'ichimoku' | 'momentum' | 'rsi' | 'ladder' | 'breakout';
 
 export interface Strategy {
   id: string;
@@ -434,6 +434,77 @@ const all: Strategy[] = [
         'Long, steady declines after all legs are in, where the bounce does not come for a long time.',
         'Sharp crashes, which fill the whole ladder in a few days at prices that keep falling.',
         'Strong, uninterrupted rallies, where few dips are deep enough to start a ladder.',
+      ],
+    },
+  },
+  {
+    id: 'tf-turtle',
+    name: 'Turtle Trend Following',
+    timeframe: 'Daily',
+    market: 'Crypto futures, the most traded coins',
+    liveSince: '2026-11-13',
+    summary:
+      'Buys a coin when it breaks out to a new multi-week high and rides the move with a stop that trails behind it. Many small losses, a few large trends. Up to six positions at a time.',
+    glyph: 'breakout',
+    details: {
+      tagline:
+        'Joins a coin the moment it breaks out of its recent range, accepts many small losses, and lets the rare big trends run.',
+      facts: [
+        { label: 'Markets', value: 'The ten most traded coins, re-picked every quarter, futures' },
+        { label: 'Chart', value: 'Daily candles' },
+        { label: 'Direction', value: 'Long only' },
+        { label: 'Leverage', value: '2x, isolated margin' },
+        { label: 'Positions', value: 'Up to six, equal size' },
+        { label: 'Typical holding', value: 'About a week for losers, several weeks for winners' },
+      ],
+      idea: [
+        'This is an adaptation of one of the best-known trading experiments: the Turtle traders of the 1980s, who were taught a simple breakout system and traded it with strict discipline. The rule behind it is old and plain. When a market makes a new high for the past several weeks, something has changed, and a real trend often starts exactly there.',
+        'Most breakouts fail. The strategy expects that and does not try to avoid it: it buys every breakout, cuts the failed ones quickly with a small loss, and stays in the few that turn into large trends for as long as they last. Fewer than half of the trades win, but the winners are many times larger than the losers. It runs on the most traded coins of the moment and picks them again every quarter, so it follows where the market is active.',
+      ],
+      entry: {
+        title: 'When it buys',
+        intro: 'A buy order waits above the market for every coin on the list. A trade opens when:',
+        kind: 'checks',
+        verdict: 'Price breaks through the high: the trade opens, during the day.',
+        items: [
+          {
+            title: 'A new high',
+            text: 'Price rises above the highest point of the past several weeks. The breakout is taken during the day, as soon as the level is crossed, not at the next close.',
+          },
+          {
+            title: 'A free slot',
+            text: 'Fewer than six positions are open. Each coin can hold one position at a time.',
+          },
+        ],
+        note: 'There is no trend filter and no prediction. The breakout itself is the signal; the stop decides how much a wrong signal costs.',
+      },
+      exit: {
+        title: 'When it sells',
+        items: [
+          {
+            title: 'Initial stop',
+            text: 'At entry, a stop is placed below the buying price at a distance based on the coin’s recent volatility. A breakout that fails straight away is closed with a small, known loss.',
+          },
+          {
+            title: 'Trailing exit',
+            text: 'As the trend runs, the exit follows below it: the position closes when price falls to the lowest point of the past couple of weeks. Whichever of the two stops is higher counts.',
+          },
+        ],
+        note: 'There is no profit target. A trade ends only when price turns down far enough to hit the stop, so a strong trend can be held for months.',
+      },
+      risk: [
+        'Moderate leverage of 2x on futures, isolated margin per position. Every trade has a stop from the moment it opens, so the loss of a single trade is limited.',
+        'At most six positions, equal size, which keeps the risk of many coins breaking out together in check.',
+        'Long only. In falling markets almost no breakouts occur, and the strategy is mostly out of the market.',
+      ],
+      goodIn: [
+        'Strong, lasting trends in single coins or across the market, the kind that run for weeks or months.',
+        'Markets that move from one range into a new one with conviction.',
+      ],
+      badIn: [
+        'Sideways markets with false breakouts, which produce a string of small losses.',
+        'Long stretches without a big trend: the strategy can go many months without a new high in its results.',
+        'Sudden reversals right after a breakout, when the price gaps through the stop.',
       ],
     },
   },
