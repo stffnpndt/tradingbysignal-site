@@ -4,5 +4,7 @@
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist"
-  }
+  },
+  // Needed by `wrangler preview`, which Cloudflare runs for pull requests. Can stay empty.
+  "previews": {}
 }
