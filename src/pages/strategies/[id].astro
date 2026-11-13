@@ -8,6 +8,7 @@ import AtrDiagram from '../../components/diagrams/AtrDiagram.astro';
 import RsiDiagram from '../../components/diagrams/RsiDiagram.astro';
 import LadderDiagram from '../../components/diagrams/LadderDiagram.astro';
 import MomentumDiagram from '../../components/diagrams/MomentumDiagram.astro';
+import TurtleDiagram from '../../components/diagrams/TurtleDiagram.astro';
 import { strategies, type Strategy, type StrategyDetails } from '../../data/strategies';
 
 export function getStaticPaths() {
@@ -29,6 +30,7 @@ const diagrams: Record<string, any> = {
   'mr-atr': AtrDiagram,
   'mr-rsi': RsiDiagram,
   'rsi-red-legs': LadderDiagram,
+  'tf-turtle': TurtleDiagram,
 };
 const Diagram = diagrams[s.id];
 
