@@ -78,6 +78,8 @@ LIVE_LEG_USD = {
 
 def strategy_key(name: str, asset: str):
     n = (name or "").lower()
+    if "turtle" in n:
+        return None  # not in the forward test until its backtest is on the site
     if "qqq" in n or (asset or "").upper() == "QQQ":
         return "rsi-red-legs-qqq"
     if "ichimoku" in n:
