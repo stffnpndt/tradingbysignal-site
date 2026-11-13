@@ -28,6 +28,8 @@ Rules, as in the backtests:
     both booked when the trade closes.
   * Funding fees are left out, as in the backtests. Only closed trades count.
   * Combined portfolio: $10,000 in each strategy, back to equal shares monthly.
+  * A strategy that went live later (STRATEGY_START) starts its forward test on
+    that day and joins the portfolio then, with an equal share.
 
 Run:  python3 scripts/build_forward.py [YYYY-MM-DD]   (optional "as of" date, default today)
       python3 scripts/build_forward.py --bands        (after new backtests: refresh the bands)
@@ -52,6 +54,15 @@ BANDS = os.path.join(ROOT, "src", "data", "forward-bands.json")
 BAND_DAYS = 3 * 366
 
 START = pd.Timestamp("2026-10-13")
+# Strategies that went live after START: their forward test starts on that day,
+# and they join the combined portfolio then (with an equal share from that day).
+STRATEGY_START = {
+    "tf-turtle": pd.Timestamp("2026-11-13"),
+}
+
+
+def start_of(key):
+    return max(START, STRATEGY_START.get(key, START))
 CAPITAL = 10_000.0
 FEE = 0.001
 LOOKAHEAD = 30  # draw the backtest band this many days past the last day, so the funnel stays visible ahead
@@ -119,7 +130,7 @@ def load_legs():
             continue
         # Every trade that closes after the start counts, with its real entry,
         # including one opened shortly before the start.
-        if closed < START or not entry or not exit_:
+        if closed < start_of(key) or not entry or not exit_:
             continue
         size = r[col["Position Size ($)"]]
         given = r[col["Legs"]] if "Legs" in col else None
@@ -257,29 +268,37 @@ def main():
 
     data, sleeves = {}, {}
     for key in SETTINGS:
-        curve, results, trades = simulate(key, legs.get(key, []), days)
+        s0 = start_of(key)
+        k_days = pd.date_range(s0, as_of, freq="D")
+        if len(k_days) == 0:  # starts later than the "as of" date: just the start day
+            k_days = pd.DatetimeIndex([s0])
+        k_band_days = pd.date_range(s0, s0 + pd.Timedelta(days=horizon), freq="D")
+        curve, results, trades = simulate(key, legs.get(key, []), k_days)
         sleeves[key] = curve
-        data[key] = pack(curve, results, bands[key], band_days, as_of)
+        data[key] = pack(curve, results, bands[key], k_band_days, as_of, start=s0)
         data[key]["list"] = trades
         max_pos, n_legs, lev = SETTINGS[key]
         data[key]["sizing"] = {"positions": max_pos, "legs": n_legs, "leverage": lev}
         if key in POSITION_SHARE:
             data[key]["sizing"]["share"] = POSITION_SHARE[key]
 
-    # Combined portfolio: equal shares, rebalanced on the first day of every month.
-    rets = pd.DataFrame({k: s / s.shift(1).fillna(CAPITAL) - 1 for k, s in sleeves.items()})
-    alloc, period, total, weight = {k: CAPITAL for k in SETTINGS}, None, [], {}
+    # Combined portfolio: equal shares, rebalanced on the first day of every month
+    # and on the day a strategy goes live (it joins with an equal share).
+    rets = {k: (s / s.shift(1).fillna(CAPITAL) - 1) for k, s in sleeves.items()}
+    alloc, period, total, weight = {}, None, [], {}
+    value = CAPITAL  # per $10,000, like the sleeves
     for d in days:
         p = d.to_period("M")
-        if period is not None and p != period:
-            t = sum(alloc.values())
-            alloc = {k: t / len(alloc) for k in alloc}
+        joining = [k for k in SETTINGS if k not in alloc and start_of(k) <= d]
+        if joining or (period is not None and p != period):
+            active = list(alloc) + joining
+            alloc = {k: value / len(active) for k in active}
         period = p
-        t = sum(alloc.values())
-        weight[d] = {k: v / t for k, v in alloc.items()}  # each strategy's share at the start of the day
+        weight[d] = {k: v / value for k, v in alloc.items()}  # each strategy's share at the start of the day
         for k in alloc:
-            alloc[k] *= 1 + rets.at[d, k]
-        total.append(sum(alloc.values()) / len(alloc))  # per $10,000, like the sleeves
+            alloc[k] *= 1 + rets[k].get(d, 0.0)
+        value = sum(alloc.values())
+        total.append(value)
     combined = pd.Series(total, index=days)
     all_results = [r for k in SETTINGS for r in data[k].pop("_results")]
     data["portfolio"] = pack(combined, all_results, bands["portfolio"],
@@ -288,7 +307,7 @@ def main():
     # its effect on its strategy times that strategy's share when the trade opened.
     data["portfolio"]["sizing"] = {"strategies": len(SETTINGS)}
     data["portfolio"]["list"] = sorted(
-        ({**t, "strategy": k, "balance": round(t["balance"] * weight[max(t["_opened"], START)][k], 5)}
+        ({**t, "strategy": k, "balance": round(t["balance"] * weight[max(t["_opened"], start_of(k))][k], 5)}
          for k in SETTINGS for t in data[k]["list"]),
         key=lambda t: t["_closed_at"], reverse=True)
     for k in list(SETTINGS) + ["portfolio"]:
@@ -303,17 +322,17 @@ def main():
         json.dump(data, f, separators=(",", ":"))
     for k, v in data.items():
         print(f"{k:18} trades {v['trades']:3}  wins {v['wins']:3}  return {v['ret']:+.2%}  "
-              f"band {v['band'][len(days) - 1][1] - 1:+.1%}..{v['band'][len(days) - 1][3] - 1:+.1%}  {v['verdict']}")
+              f"band {v['band'][len(v['curve']) - 1][1] - 1:+.1%}..{v['band'][len(v['curve']) - 1][3] - 1:+.1%}  {v['verdict']}")
     print(f"wrote {OUT}")
 
 
-def pack(curve, results, bnd, band_days, as_of, start_capital=CAPITAL):
+def pack(curve, results, bnd, band_days, as_of, start_capital=CAPITAL, start=START):
     mult = curve / CAPITAL
     h = len(curve) - 1
     lo, _, hi = bnd[h]
     n = len(results)
     return {
-        "start": START.strftime("%Y-%m-%d"),
+        "start": start.strftime("%Y-%m-%d"),
         "asOf": as_of.strftime("%Y-%m-%d"),
         "startCapital": start_capital,
         "curve": [[d.strftime("%Y-%m-%d"), round(float(v), 5)] for d, v in mult.items()],

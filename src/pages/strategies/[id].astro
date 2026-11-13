@@ -50,6 +50,9 @@ const backtestRuns: Record<string, { key: string; label: string; setup: string }
   ],
 };
 const runs = backtestRuns[s.id] ?? [];
+// The forward test starts on 13 October 2026, or later for a strategy that went live later.
+const fwdStart = s.liveSince > '2026-10-13' ? s.liveSince : '2026-10-13';
+const fwdStartText = new Date(fwdStart + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 const withPages = strategies.filter((x) => x.details);
 const others = strategies.filter((x) => x.id !== s.id);
@@ -168,7 +171,7 @@ const others = strategies.filter((x) => x.id !== s.id);
         <Backtest runs={runs} />
 
         <h2 class="spaced" id="forward-title">Forward test</h2>
-        <p class="lead">The live trades closed since 13 October 2026, measured with the backtest’s rules.</p>
+        <p class="lead">The live trades closed since {fwdStartText}, measured with the backtest’s rules.</p>
         <Forward runs={runs.map((r) => ({ key: r.key, label: r.label }))} />
       </div>
     </section>
