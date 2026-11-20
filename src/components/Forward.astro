@@ -1,4 +1,5 @@
 ---
+import MonthGrid from './MonthGrid.astro';
 // Forward test for one strategy or the combined portfolio: the live trades
 // since 13 October 2026 (or a strategy's later start), recalculated with the backtest's rules, drawn over
 // the range the backtest typically covered in a period of the same length.
@@ -209,43 +210,19 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
             // Same year x month grid as the backtests: % of the balance, $ below.
             const ms = months(d);
             const by = new Map(ms.map((x) => [x.m, x]));
-            const yrs = [...new Set(ms.map((x) => x.m.slice(0, 4)))];
-            const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const shade = (v: number, full = 0.1) => {
-              const a = Math.round((0.1 + Math.min(Math.abs(v) / full, 1) * 0.55) * 100) / 100;
-              return v === 0 ? 'transparent' : v > 0 ? `rgba(195, 160, 90, ${a})` : `rgba(201, 104, 92, ${a})`;
-            };
+            const rows = [...new Set(ms.map((x) => x.m.slice(0, 4)))].map((y) => {
+              const cells = Array.from({ length: 12 }, (_, i) => by.get(`${y}-${String(i + 1).padStart(2, '0')}`));
+              const inYear = cells.filter((x) => x !== undefined) as typeof ms;
+              return {
+                year: y,
+                cells: cells.map((x) => (x ? { ret: x.ret, usd: x.usd, running: x.running } : undefined)),
+                total: { ret: inYear.reduce((g, x) => g * (1 + x.ret), 1) - 1, usd: inYear.reduce((t, x) => t + x.usd, 0) },
+              };
+            });
             return (
               <figure class="months">
                 <figcaption>Result per month <span>(closed trades, % of the balance at the start of the month)</span></figcaption>
-                <div class="months-scroll" tabindex="0" role="region" aria-label="Forward test result per month">
-                  <table class="mgrid">
-                    <thead>
-                      <tr><th scope="col">Year</th>{MON.map((m) => <th scope="col">{m}</th>)}<th scope="col">Year</th></tr>
-                    </thead>
-                    <tbody>
-                      {yrs.map((y) => {
-                        const row = MON.map((_, i) => by.get(`${y}-${String(i + 1).padStart(2, '0')}`));
-                        const inYear = row.filter((x) => x !== undefined) as typeof ms;
-                        const yRet = inYear.reduce((g, x) => g * (1 + x.ret), 1) - 1;
-                        const yUsd = inYear.reduce((t, x) => t + x.usd, 0);
-                        return (
-                          <tr>
-                            <th scope="row">{y}</th>
-                            {row.map((x) =>
-                              x === undefined ? <td class="na"></td> : (
-                                <td class:list={{ running: x.running }} style={`background:${shade(x.ret)}`} title={`${x.label}${x.running ? ' (so far)' : ''}: ${pct2(x.ret)}, ${usd(x.usd)}`}>
-                                  {pct2(x.ret)}<small>{usd(x.usd)}</small>
-                                </td>
-                              )
-                            )}
-                            <td class="tot" style={`background:${shade(yRet, 1)}`}>{pct2(yRet)}<small>{usd(yUsd)}</small></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <MonthGrid rows={rows} label="Forward test result per month" />
                 {ms.some((x) => x.running) && <p class="months-note">The dashed month is still running.</p>}
               </figure>
             );
@@ -403,58 +380,6 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   .months figcaption span {
     font-weight: 400;
     color: var(--on-dark-muted);
-  }
-  .months-scroll {
-    overflow-x: auto;
-    outline: none;
-  }
-  .months-scroll:focus-visible {
-    box-shadow: 0 0 0 1px var(--gold);
-  }
-  .mgrid {
-    width: 100%;
-    min-width: 44rem;
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 2px;
-    font-size: 0.8125rem;
-    font-variant-numeric: tabular-nums;
-  }
-  .mgrid thead th:first-child {
-    width: 3rem;
-    text-align: left;
-  }
-  .mgrid th {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--on-dark-muted);
-    padding: 0.3rem 0.25rem;
-    text-align: center;
-  }
-  .mgrid th[scope='row'] {
-    text-align: left;
-    color: var(--on-dark);
-    padding-right: 0.5rem;
-  }
-  .mgrid td {
-    text-align: center;
-    padding: 0.35rem 0.2rem;
-    border-radius: 3px;
-    color: #f2f1ee;
-    white-space: nowrap;
-  }
-  .mgrid td small {
-    display: block;
-    font-size: 0.6875rem;
-    color: var(--on-dark-muted);
-  }
-  .mgrid td.running {
-    outline: 1px dashed var(--on-dark-muted);
-    outline-offset: -1px;
-  }
-  .mgrid td.tot {
-    font-weight: 600;
-    box-shadow: inset 0 0 0 1px var(--rule);
   }
   .months-note {
     margin: 0.5rem 0 0 !important;
