@@ -26,6 +26,7 @@ type Result = {
   maxOpen?: number;
   positions?: number[];
   years: { year: number; ret: number; dd: number; partial: boolean }[];
+  months?: [string, number][]; // [YYYY-MM, return of that month]
   curve: Curve[];
 };
 
@@ -52,6 +53,25 @@ const months = (days: number) => {
   return m < 2 ? `${days} days` : m < 24 ? `${m} months` : `${(days / 365.25).toFixed(1)} years`;
 };
 const uid = `bt-${items.map((i) => i.key).join('-')}`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const pct1 = (v: number) => {
+  const n = Math.abs(v * 100);
+  return n < 0.05 ? '0.0%' : `${v < 0 ? '−' : '+'}${n.toFixed(1)}%`;
+};
+// Cell shade: full strength at ±10% in a month (±100% for a whole year).
+const shade = (v: number, full = 0.1) => {
+  const a = Math.round((0.1 + Math.min(Math.abs(v) / full, 1) * 0.55) * 100) / 100;
+  return v === 0 ? 'transparent' : v > 0 ? `rgba(195, 160, 90, ${a})` : `rgba(201, 104, 92, ${a})`;
+};
+const monthGrid = (d: Result) => {
+  if (!d.months?.length) return null;
+  const by = new Map(d.months);
+  return d.years.map((y) => ({
+    year: y.year,
+    ret: y.ret,
+    cells: MONTHS.map((_, i) => by.get(`${y.year}-${String(i + 1).padStart(2, '0')}`)),
+  }));
+};
 ---
 
 {items.length > 0 && (
@@ -157,6 +177,31 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
               </tbody>
             </table>
           </div>
+
+          {monthGrid(d) && (
+            <div class="months">
+              <h4 class="months-title">Month by month</h4>
+              <p class="months-sub">Return of each month on the balance at its start. Gold for gains, red for losses; the stronger the colour, the bigger the move.</p>
+              <div class="months-scroll" tabindex="0" role="region" aria-label="Returns month by month">
+                <table class="mgrid">
+                  <thead>
+                    <tr><th scope="col">Year</th>{MONTHS.map((m) => <th scope="col">{m}</th>)}<th scope="col">Year</th></tr>
+                  </thead>
+                  <tbody>
+                    {monthGrid(d)!.map((r) => (
+                      <tr>
+                        <th scope="row">{r.year}</th>
+                        {r.cells.map((v, i) =>
+                          v === undefined ? <td class="na"></td> : <td style={`background:${shade(v)}`} title={`${MONTHS[i]} ${r.year}: ${pct1(v)}`}>{pct1(v)}</td>
+                        )}
+                        <td class="tot" style={`background:${shade(r.ret, 1)}`}>{pct(r.ret)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {(d.liquidations ?? 0) > 0 && (
             <p class="liq">In the backtest, {d.liquidations === 1 ? 'one position was' : `${d.liquidations} positions were`} liquidated, losing the margin set aside for {d.liquidations === 1 ? 'it' : 'them'}. Both curves include these losses.</p>
@@ -407,6 +452,58 @@ const uid = `bt-${items.map((i) => i.key).join('-')}`;
     font-size: 0.75rem;
     color: var(--on-dark-muted);
     font-weight: 400;
+  }
+  .months {
+    margin-top: 2.5rem;
+  }
+  .months-title {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--on-dark);
+  }
+  .months-sub {
+    margin: 0 0 0.75rem !important;
+    font-size: 0.8125rem;
+    max-width: 46rem;
+  }
+  .months-scroll {
+    overflow-x: auto;
+    outline: none;
+  }
+  .months-scroll:focus-visible {
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+  .mgrid {
+    width: 100%;
+    min-width: 44rem;
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .mgrid th {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--on-dark-muted);
+    padding: 0.3rem 0.25rem;
+    text-align: center;
+  }
+  .mgrid th[scope='row'] {
+    text-align: left;
+    color: var(--on-dark);
+    padding-right: 0.5rem;
+  }
+  .mgrid td {
+    text-align: center;
+    padding: 0.4rem 0.2rem;
+    border-radius: 3px;
+    color: #f2f1ee;
+    white-space: nowrap;
+  }
+  .mgrid td.tot {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--rule);
   }
   .liq {
     margin: 1.5rem 0 0 !important;

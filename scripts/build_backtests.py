@@ -100,6 +100,11 @@ def build(key: str) -> dict:
             "partial": bool(part.index[0].dayofyear > 7 or (part.index[-1].month, part.index[-1].day) < (12, 25)),
         })
 
+    # Month by month: return of each calendar month on the balance at the start of it.
+    monthly = eq.equity.resample("ME").last()
+    mprev = [start_cap] + list(monthly.values[:-1])
+    months_out = [[d.strftime("%Y-%m"), round(float(e / p - 1), 4)] for (d, e), p in zip(monthly.items(), mprev)]
+
     # Weekly curve: last equity of the week, worst drawdowns within the week,
     # so short spikes are not smoothed away.
     wk = eq.resample("W-SUN").agg({"equity": "last", "dd": "min", "dd_intra_trade": "min"}).dropna()
@@ -117,6 +122,7 @@ def build(key: str) -> dict:
         "longestUnderwaterDays": int(longest),
         "losingYears": sum(1 for y in years_out if y["ret"] < 0),
         "years": years_out,
+        "months": months_out,  # [month, return]
         "curve": curve,  # [week, equity multiple, drawdown closed, drawdown intra-trade]
     }
     if tr is not None:
