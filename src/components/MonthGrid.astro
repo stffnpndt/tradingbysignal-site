@@ -1,0 +1,116 @@
+---
+// Year x month grid of returns, shared by the backtests and the forward test so
+// both look the same: % of the balance at the start of the month (and $ below,
+// when given), the year total at the end, gold for gains and red for losses.
+type Cell = { ret: number; usd?: number; running?: boolean } | undefined;
+interface Props {
+  rows: { year: number | string; cells: Cell[]; total: { ret: number; usd?: number } }[];
+  label: string; // accessible name of the scroll region
+}
+const { rows, label } = Astro.props;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// One decimal, two below 1% so small months do not all read 0.0%; whole numbers from 100%.
+const pct = (v: number) => {
+  const a = Math.abs(v * 100);
+  const s = a >= 100 ? Math.round(a).toLocaleString('en-US') : a >= 1 ? a.toFixed(1) : a.toFixed(2);
+  return a < 0.005 ? '0.00%' : `${v < 0 ? '−' : '+'}${s}%`;
+};
+const usd = (v: number) => (Math.round(v) === 0 ? '$0' : `${v < 0 ? '−' : '+'}$${Math.abs(Math.round(v)).toLocaleString('en-US')}`);
+// Full colour at ±10% in a month, ±100% for a whole year.
+const shade = (v: number, full = 0.1) => {
+  const a = Math.round((0.1 + Math.min(Math.abs(v) / full, 1) * 0.55) * 100) / 100;
+  return v === 0 ? 'transparent' : v > 0 ? `rgba(195, 160, 90, ${a})` : `rgba(201, 104, 92, ${a})`;
+};
+---
+
+<div class="mg-scroll" tabindex="0" role="region" aria-label={label}>
+  <table class="mg">
+    <colgroup>
+      <col class="c-year" />
+      {MONTHS.map(() => <col />)}
+      <col />
+    </colgroup>
+    <thead>
+      <tr><th scope="col">Year</th>{MONTHS.map((m) => <th scope="col">{m}</th>)}<th scope="col">Year</th></tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <th scope="row">{r.year}</th>
+          {r.cells.map((c, i) =>
+            c === undefined ? <td></td> : (
+              <td class:list={{ running: c.running }} style={`background:${shade(c.ret)}`} title={`${MONTHS[i]} ${r.year}${c.running ? ' (so far)' : ''}: ${pct(c.ret)}${c.usd !== undefined ? `, ${usd(c.usd)}` : ''}`}>
+                {pct(c.ret)}{c.usd !== undefined && <small>{usd(c.usd)}</small>}
+              </td>
+            )
+          )}
+          <td class="tot" style={`background:${shade(r.total.ret, 1)}`}>
+            {pct(r.total.ret)}{r.total.usd !== undefined && <small>{usd(r.total.usd)}</small>}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .mg-scroll {
+    overflow-x: auto;
+    outline: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(231, 231, 229, 0.25) transparent;
+  }
+  .mg-scroll:focus-visible {
+    box-shadow: 0 0 0 1px var(--gold);
+  }
+  /* Fixed layout with equal month columns, so empty months keep their width;
+     the minimum width keeps every value inside its box (the grid scrolls on phones). */
+  .mg {
+    width: 100%;
+    min-width: 54rem;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .mg .c-year {
+    width: 3.25rem;
+  }
+  .mg th {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--on-dark-muted);
+    padding: 0.3rem 0.2rem;
+    text-align: center;
+  }
+  .mg thead th:first-child,
+  .mg th[scope='row'] {
+    text-align: left;
+  }
+  .mg th[scope='row'] {
+    color: var(--on-dark);
+  }
+  .mg td {
+    text-align: center;
+    padding: 0.4rem 0.15rem;
+    border-radius: 3px;
+    color: #f2f1ee;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+  .mg td small {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--on-dark-muted);
+  }
+  .mg td.running {
+    outline: 1px dashed var(--on-dark-muted);
+    outline-offset: -1px;
+  }
+  .mg td.tot {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+</style>
