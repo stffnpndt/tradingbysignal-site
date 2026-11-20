@@ -206,27 +206,47 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
             <div class="tip" hidden></div>
           </figure>
           {it.key === 'portfolio' && d.trades > 0 && (() => {
-            // One shared scale: gains above the zero line, losses below it.
+            // Same year x month grid as the backtests: % of the balance, $ below.
             const ms = months(d);
-            const up = Math.max(0, ...ms.map((x) => x.ret));
-            const dn = Math.max(0, ...ms.map((x) => -x.ret));
-            const H = 140;
-            const k = H / Math.max(up + dn, 0.002);
-            const zero = up * k;
+            const by = new Map(ms.map((x) => [x.m, x]));
+            const yrs = [...new Set(ms.map((x) => x.m.slice(0, 4)))];
+            const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const shade = (v: number, full = 0.1) => {
+              const a = Math.round((0.1 + Math.min(Math.abs(v) / full, 1) * 0.55) * 100) / 100;
+              return v === 0 ? 'transparent' : v > 0 ? `rgba(195, 160, 90, ${a})` : `rgba(201, 104, 92, ${a})`;
+            };
             return (
               <figure class="months">
-                <figcaption>Result per month <span>(closed trades)</span></figcaption>
-                <div class="bars" style={`--n:${ms.length};--h:${Math.max(H, zero + dn * k)}px`}>
-                  {ms.map((x) => (
-                    <div class:list={['bar', x.ret < 0 ? 'neg' : 'pos']}>
-                      <span class="val">{pct2(x.ret)}<small>{usd(x.usd)}</small></span>
-                      <span class="col" style={`--zero:${zero}px`}>
-                        <span class="fill" style={x.ret < 0 ? `top:${zero}px;height:${Math.max(2, -x.ret * k)}px` : `top:${zero - Math.max(2, x.ret * k)}px;height:${Math.max(2, x.ret * k)}px`}></span>
-                      </span>
-                      <span class="mon">{x.label}{x.running && <small>so far</small>}</span>
-                    </div>
-                  ))}
+                <figcaption>Result per month <span>(closed trades, % of the balance at the start of the month)</span></figcaption>
+                <div class="months-scroll" tabindex="0" role="region" aria-label="Forward test result per month">
+                  <table class="mgrid">
+                    <thead>
+                      <tr><th scope="col">Year</th>{MON.map((m) => <th scope="col">{m}</th>)}<th scope="col">Year</th></tr>
+                    </thead>
+                    <tbody>
+                      {yrs.map((y) => {
+                        const row = MON.map((_, i) => by.get(`${y}-${String(i + 1).padStart(2, '0')}`));
+                        const inYear = row.filter((x) => x !== undefined) as typeof ms;
+                        const yRet = inYear.reduce((g, x) => g * (1 + x.ret), 1) - 1;
+                        const yUsd = inYear.reduce((t, x) => t + x.usd, 0);
+                        return (
+                          <tr>
+                            <th scope="row">{y}</th>
+                            {row.map((x) =>
+                              x === undefined ? <td class="na"></td> : (
+                                <td class:list={{ running: x.running }} style={`background:${shade(x.ret)}`} title={`${x.label}${x.running ? ' (so far)' : ''}: ${pct2(x.ret)}, ${usd(x.usd)}`}>
+                                  {pct2(x.ret)}<small>{usd(x.usd)}</small>
+                                </td>
+                              )
+                            )}
+                            <td class="tot" style={`background:${shade(yRet, 1)}`}>{pct2(yRet)}<small>{usd(yUsd)}</small></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+                {ms.some((x) => x.running) && <p class="months-note">The dashed month is still running.</p>}
               </figure>
             );
           })()}
@@ -370,9 +390,7 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
   .plot.dd {
     height: 110px;
   }
-  /* Monthly results: plain HTML bars with their values always visible, so
-     nothing depends on hover or tap. Gains rise from the zero line, losses
-     hang below it (outlined, like losing trades elsewhere). */
+  /* Monthly results: the same year x month grid as the backtests. */
   .months {
     margin: 2.25rem 0 0;
   }
@@ -386,64 +404,61 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
     font-weight: 400;
     color: var(--on-dark-muted);
   }
-  .bars {
-    display: grid;
-    grid-template-columns: repeat(var(--n), minmax(4.25rem, 7rem));
-    gap: 0 0.75rem;
+  .months-scroll {
     overflow-x: auto;
-    padding-bottom: 0.25rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(231, 231, 229, 0.25) transparent;
+    outline: none;
   }
-  .bar {
-    display: grid;
-    grid-template-rows: auto var(--h) auto;
-    font-variant-numeric: tabular-nums;
-    align-content: start;
+  .months-scroll:focus-visible {
+    box-shadow: 0 0 0 1px var(--gold);
   }
-  .val {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #f2f1ee;
-    padding-bottom: 0.4rem;
-    display: flex;
-    flex-direction: column;
-  }
-  .val small,
-  .mon small {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--on-dark-muted);
-  }
-  .col {
-    position: relative;
-  }
-  /* The zero line runs through every column at the same height. */
-  .col::before {
-    content: '';
-    position: absolute;
-    left: -0.375rem;
-    right: -0.375rem;
-    top: var(--zero);
-    border-top: 1px solid var(--rule);
-  }
-  .fill {
-    position: absolute;
-    left: 0;
-    right: 0;
-    background: var(--gold);
-    border-radius: 2px;
-  }
-  .bar.neg .fill {
-    background: transparent;
-    border: 1.5px solid var(--gold-bright);
-  }
-  .mon {
+  .mgrid {
+    width: 100%;
+    min-width: 44rem;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 2px;
     font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .mgrid thead th:first-child {
+    width: 3rem;
+    text-align: left;
+  }
+  .mgrid th {
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--on-dark-muted);
-    padding-top: 0.4rem;
-    display: flex;
-    flex-direction: column;
+    padding: 0.3rem 0.25rem;
+    text-align: center;
+  }
+  .mgrid th[scope='row'] {
+    text-align: left;
+    color: var(--on-dark);
+    padding-right: 0.5rem;
+  }
+  .mgrid td {
+    text-align: center;
+    padding: 0.35rem 0.2rem;
+    border-radius: 3px;
+    color: #f2f1ee;
+    white-space: nowrap;
+  }
+  .mgrid td small {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--on-dark-muted);
+  }
+  .mgrid td.running {
+    outline: 1px dashed var(--on-dark-muted);
+    outline-offset: -1px;
+  }
+  .mgrid td.tot {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  .months-note {
+    margin: 0.5rem 0 0 !important;
+    font-size: 0.75rem;
   }
   .subcap {
     margin: 1.75rem 0 0.5rem !important;
@@ -710,8 +725,6 @@ const uid = `fw-${items.map((i) => i.key).join('-')}`;
 </style>
 
 <script>
-  // Month bars: on narrow screens start at the latest month.
-  document.querySelectorAll<HTMLElement>('.fw .bars').forEach((b) => (b.scrollLeft = b.scrollWidth));
   type Pt = [string, number];
   type Bd = [string, number, number, number];
   const NS = 'http://www.w3.org/2000/svg';
