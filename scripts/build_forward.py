@@ -26,7 +26,7 @@ Rules, as in the backtests:
     the position size and the live size of one leg (LIVE_LEG_USD below).
   * Real entry and exit prices from the tracker, 0.1% fee on every buy and sell,
     both booked when the trade closes.
-  * Funding fees are left out, as in the backtests. Only closed trades count.
+  * Funding fees are left out (the backtests include them). Only closed trades count.
   * Combined portfolio: $10,000 in each strategy, back to equal shares monthly.
   * A strategy that went live later (STRATEGY_START) starts its forward test on
     that day and joins the portfolio then, with an equal share.

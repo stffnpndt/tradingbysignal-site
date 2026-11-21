@@ -87,7 +87,7 @@ const monthGrid = (d: Result) => {
       return (
         <div class="panel" role={items.length > 1 ? 'tabpanel' : undefined} id={`${uid}-panel-${i}`} aria-labelledby={items.length > 1 ? `${uid}-tab-${i}` : undefined} hidden={i !== 0}>
           <p class="setup">
-            {fmtMonth(d.start)} to {fmtMonth(d.end)}. {it.setup} Starting balance {cap}, profits reinvested, fees included.
+            {fmtMonth(d.start)} to {fmtMonth(d.end)}. {it.setup} Starting balance {cap}, profits reinvested, fees, slippage and funding included.
           </p>
 
           <dl class="tiles">
