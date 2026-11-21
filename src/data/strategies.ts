@@ -354,7 +354,7 @@ const all: Strategy[] = [
     id: 'rsi-red-legs',
     name: 'RSI Red Legs',
     timeframe: 'Daily',
-    market: '20 large crypto assets and the Nasdaq-100 (QQQ)',
+    market: 'The 30 largest crypto assets and the Nasdaq-100 (QQQ)',
     liveSince: '2026-09-18',
     summary:
       'Builds a position in up to five equal legs while a sell-off continues, guided by RSI, and closes the whole ladder on the rebound.',
@@ -363,7 +363,7 @@ const all: Strategy[] = [
       tagline:
         'Starts buying when a market is oversold, adds a leg on every red day, and sells the whole ladder as soon as a small profit is in.',
       facts: [
-        { label: 'Markets', value: '20 large coins and the Nasdaq-100 (QQQ), futures' },
+        { label: 'Markets', value: 'The 30 largest coins and the Nasdaq-100 (QQQ), futures' },
         { label: 'Chart', value: 'Daily candles' },
         { label: 'Direction', value: 'Long only' },
         { label: 'Leverage', value: '2x on coins, 3x on QQQ' },
